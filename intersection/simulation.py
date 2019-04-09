@@ -125,6 +125,7 @@ S = np.asarray(S)
 
 # plot the result
 plt.rcParams.update({'font.size': 15})
+plt.figure(figsize=(10,8))
 plt.plot(timeline, S[:,0])
 red, green, yellow = light.trafficline()
 newline(red[0],red[1],'r')
@@ -135,4 +136,5 @@ plt.ylabel('position/m')
 plt.legend(['trajectory', 'red', 'green', 'yellow'])
 plt.title('Simple simulation of vehilce going through intersection')
 plt.grid(color='b', linestyle='-', linewidth=.2)
+plt.savefig('through_intersec.png')
 plt.show()
