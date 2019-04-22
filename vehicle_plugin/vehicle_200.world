@@ -1,0 +1,26 @@
+<?xml version='1.0'?>
+<sdf version='1.5'>
+  <world name="default">
+
+    <!-- A global light source -->
+    <include>
+      <uri>model://sun</uri>
+    </include>
+    <include>
+      <uri>model://ground_plane</uri>
+    </include>
+    <!-- A ground plane -->
+    <model name='(DS) Straight Road - 200m'>
+      <include>
+        <uri>model://ds_straight_road_200m</uri>
+      </include>
+      <pose frame=''>100 10.3673 -0.1 0 -0 0</pose>
+    </model>
+    <model name='my_vehicle'>
+      <include>
+        <uri>model://follower_vehicle</uri>
+      </include>
+      <plugin name='vehicle_control' filename='libvehicle_plugin.so'/>
+    </model>
+  </world>
+</sdf>

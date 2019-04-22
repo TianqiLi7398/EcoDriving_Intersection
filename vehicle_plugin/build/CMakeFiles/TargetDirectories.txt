@@ -1,0 +1,3 @@
+/home/tianqi/vehicle_plugin/build/CMakeFiles/edit_cache.dir
+/home/tianqi/vehicle_plugin/build/CMakeFiles/rebuild_cache.dir
+/home/tianqi/vehicle_plugin/build/CMakeFiles/vehicle_plugin.dir
