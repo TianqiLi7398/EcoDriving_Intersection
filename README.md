@@ -4,4 +4,4 @@
 
 Add more details later...
 
-export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:~/vehicle_plugin/build
+export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:~/vehicle_intersection/vehicle_plugin/build
