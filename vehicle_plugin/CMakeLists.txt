@@ -9,3 +9,16 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${GAZEBO_CXX_FLAGS}")
 # Build our plugin
 add_library(vehicle_plugin SHARED vehicle_plugin.cc)
 target_link_libraries(vehicle_plugin ${GAZEBO_LIBRARIES})
+
+
+# Build the stand-alone test program
+add_executable(vel vel.cc)
+
+if (${gazebo_VERSION_MAJOR} LESS 6)
+  # These two
+  include(FindBoost)
+  find_package(Boost ${MIN_BOOST_VERSION} REQUIRED system filesystem regex)
+  target_link_libraries(vel ${GAZEBO_LIBRARIES} ${Boost_LIBRARIES})
+else()
+  target_link_libraries(vel ${GAZEBO_LIBRARIES})
+endif()

@@ -1,6 +1,6 @@
 <?xml version='1.0'?>
 <sdf version='1.5'>
-  <world name="default">
+  <world name="road">
 
     <!-- A global light source -->
     <include>
@@ -18,9 +18,17 @@
     </model>
     <model name='my_vehicle'>
       <include>
-        <uri>model://follower_vehicle</uri>
+        <uri>model://fourwheel_vehicle</uri>
       </include>
-      <plugin name='vehicle_control' filename='libvehicle_plugin.so'/>
+      <plugin name='vehicle_control' filename='libvehicle_plugin.so'>
+        <velocity>0</velocity>
+      </plugin>
+      <sensor name="imu_sensor" type="imu">
+         <pose>0 0 0 0 0 0</pose>
+         <always_on>1</always_on>
+         <update_rate>100.0</update_rate>
+      </sensor>
+
     </model>
   </world>
 </sdf>
