@@ -25,6 +25,7 @@ class dfs_optimizer:
         self.record = None
         self.stop_at_redlight = False
         self.go_after_redlight = False
+        self.init_state = []
 
     class node:
         # this node stands for the grid states of (x,v) on the road
@@ -48,7 +49,7 @@ class dfs_optimizer:
         return [False, None]
 
     def DFS_green_light(self, node, sol):
-        if node.x < self.car.x0[0] + self.car.delta_x:
+        if node.x < self.init_state[0] + self.car.delta_x:
             meet_red_light = self.inside_red(sol["t"])
             #  find if the total time is inside the green/red interval
             if not meet_red_light[0]:
@@ -68,7 +69,7 @@ class dfs_optimizer:
                     self.DFS_green_light(edge["v1"], new_sol)
 
     def DFS_red_light(self, node, sol):
-        if node.x < self.car.x0[0] + self.car.delta_x:
+        if node.x < self.init_state[0] + self.car.delta_x:
             meet_red_light = self.inside_red(sol["t"])
             #  find if the total time is inside the green/red interval
             if meet_red_light[0]:
@@ -87,14 +88,14 @@ class dfs_optimizer:
 #                     print(edge["v1"].x, edge["v1"].v)
                     self.DFS_red_light(edge["v1"], new_sol)
 
-    def build_graph(self, loc_grid, vel_grid):
+    def build_graph(self, loc_grid, vel_grid, x, v):
 
         for loc in loc_grid:
             row = []
             for vel in vel_grid:
                 row.append(self.node(loc, vel))
             self.graph.append(row)
-        begin_node = self.node(self.car.x0[0], self.car.x0[1])
+        begin_node = self.node(x, v)
         final_node = self.node(loc_grid[-1], 0)
 
         # first layer of nodes initialize
@@ -136,30 +137,50 @@ class dfs_optimizer:
                                     node.income_edge.append(edge)
                                     begin_node.outcome_edge.append(edge)
 
-    def solver(self, dv):
+    def solver(self, x, v, dv):
+        # we need to know the initial position, then directly optimize it
+        
+        m = int((self.light.location - x)/self.car.delta_x)
+        n = int(self.car.v_max / dv)
+       
+
+        self.init_state = [x, v]
+
         # first make the grid states
-        start_loc, end_loc = self.car.x0[0], self.light.location + self.car.delta_x
-        loc_num = math.floor((end_loc - start_loc)/self.car.delta_x)
-        vel_num = math.floor(self.car.v_max/dv) + 1
+        start_loc, end_loc = x, self.light.location + self.car.delta_x
+        loc_num = m + 1
+        
         loc_grid = np.linspace(start_loc + self.car.delta_x, end_loc, loc_num)
-        vel_grid = np.linspace(0, self.car.v_max, vel_num)
+        vel_grid = np.linspace(0, self.car.v_max, n+ 1)
+        
+        
+        # print(loc_grid, vel_grid)
 
         # build the graph
-        self.build_graph(loc_grid, vel_grid)
+        self.build_graph(loc_grid, vel_grid, x, v)
 
         sol = {"t": 0, "cost": 0, "action": []}
         Total_solutions = []  # stores tuples of [cost, tuple] combos for all status
         
+
+        # if loc_mun > 2, which means x0 < light.location, we need to search for sol, 
+        # else, we need to check if this can go through the light, then search for optimal
+
+        
         # red light optimal sol
         self.DFS_red_light(self.graph[loc_num - 2][0], sol)
+
+        
         # pick up the solution with lowest cost for this state's best solution
+        # red light
         if self.sol != []:
             solution = Sort_Tuple(self.sol)[0]
-            solution.insert(0, 0)
-
+            solution.insert(0, 0) # insert velocity
+            
             Total_solutions.append(solution)
 
             self.sol = []
+        # green light
         for i in range(1, len(self.graph[loc_num - 2])):
 
             sol = {"t": 0, "cost": 0, "action": []}
@@ -168,47 +189,64 @@ class dfs_optimizer:
             if self.sol != []:
                 solution = Sort_Tuple(self.sol)[0]
                 solution.insert(0, i)
-
+                
                 Total_solutions.append(solution)
 
                 self.sol = []
 
+        
         # in Total_solutions, the form is [index of the status in graph[-2], cost, action]
 
         # after we know the all optimal solutions in front of traffic light, then we
         # move on to discover the step after passing the light, the final step
+        
+        
         Final_solution = []
-        for i in range(len(self.graph[-1])):
-            if self.graph[-1][i].v != 0:
-                node = self.graph[-1][i]
-                # Dynamic Programming in assuring the last step in traffic light
-                for pre_solution in Total_solutions:
-                    begin_node = self.graph[-2][pre_solution[0]]
-                    delta_v = node.v - begin_node.v
-                    delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
-                    a = delta_v / delta_t
-                    if a < self.car.a_max and a > self.car.a_min:
-                        j = delta_t * self.car.w1 / self.car.delta_t_min + \
-                            abs(a/self.car.a_max) * self.car.w2
-                        if j + pre_solution[1] < node.cost:
+        if len(Total_solutions) > 0:
+            for i in range(len(self.graph[-1])):
+                if self.graph[-1][i].v != 0:
+                    node = self.graph[-1][i]
+                    # Dynamic Programming in assuring the last step in traffic light
+                    for pre_solution in Total_solutions:
+                        
+                        if np.isclose(x, self.light.location):                 
+                            begin_node = self.graph[-1][pre_solution[0]]
+                        else:
+                            begin_node = self.graph[-2][pre_solution[0]]
+                        delta_v = node.v - begin_node.v
+                        delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
+                        a = delta_v / delta_t
+                        if a < self.car.a_max and a > self.car.a_min:
+                            j = delta_t * self.car.w1 / self.car.delta_t_min + \
+                                abs(a/self.car.a_max) * self.car.w2
+                            if j + pre_solution[1] < node.cost:
 
-                            node.cost = j + pre_solution[1]
-                            node.action = copy.deepcopy(pre_solution[2])
+                                node.cost = j + pre_solution[1]
+                                node.action = copy.deepcopy(pre_solution[2])
 
-                            node.action.append(a)
+                                node.action.append(a)
 
-                Final_solution.append([node.cost, node.action])
+                    Final_solution.append([node.cost, node.action])
+                
+        
+        if len(Final_solution) == 0:
+            return [], 99999, []
 
         optimal_solution = Sort_Tuple(Final_solution)[0]
+        
         self.optimal_control = optimal_solution[1]
+        
 
         # calculate the velocity for every grid states
-        self.cal_opt_vel()
+        self.cal_opt_vel(v)
+        
 
+        # return self.optimal_control, optimal_solution[0] # plans, cost
         return self.optimal_control, optimal_solution[0], self.record
 
-    def cal_opt_vel(self):
-        self.record = [self.car.x0[1]]
+
+    def cal_opt_vel(self, v):
+        self.record = [v]
         for i in range(len(self.optimal_control)):
             a = self.optimal_control[i]
             self.record.append(np.sqrt(self.car.delta_x*2*a + self.record[i]**2))

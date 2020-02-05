@@ -13,7 +13,7 @@ def Sort_Tuple(tup):
     return tup
 
 
-class dfs_optimizer:
+class pre_optimizer:
     def __init__(self, light, car):
         self.light = light
         final_time = 2 * light.T
@@ -25,6 +25,7 @@ class dfs_optimizer:
         self.record = None
         self.stop_at_redlight = False
         self.go_after_redlight = False
+        self.penalty_red = 1
 
     class node:
         # this node stands for the grid states of (x,v) on the road
@@ -49,11 +50,13 @@ class dfs_optimizer:
 
     def DFS_green_light(self, node, sol):
         if node.x < self.car.x0[0] + self.car.delta_x:
-            meet_red_light = self.inside_red(sol["t"])
+            # in prediction, we need to make penalty if real light is not green.
             #  find if the total time is inside the green/red interval
-            if not meet_red_light[0]:
-                #  add the solution to the whole solution
-                self.sol.append([sol["cost"], sol["action"]])
+            p_red = self.light.prediction(self.car.x0[2], sol["t"])[0]
+            #  add the solution to the whole solution
+            cost = sol["cost"] + self.penalty_red * abs(max(np.log(p_red), -9999))
+            print(cost)
+            self.sol.append([cost, sol["action"]])
             return
         else:
             if node.income_edge != []:
@@ -69,11 +72,13 @@ class dfs_optimizer:
 
     def DFS_red_light(self, node, sol):
         if node.x < self.car.x0[0] + self.car.delta_x:
-            meet_red_light = self.inside_red(sol["t"])
+            # meet_red_light = self.inside_red(sol["t"])
             #  find if the total time is inside the green/red interval
-            if meet_red_light[0]:
-                #  add the solution to the whole solution
-                idling_cost = meet_red_light[1] * 1
+            # if meet_red_light[0]:
+            #     #  add the solution to the whole solution
+            #     idling_cost = meet_red_light[1] * 1
+            idling_cost = self.light.est_waiting(self.car.x0[2], sol["t"]) * 1
+            if idling_cost > 0:
                 self.sol.append([sol["cost"] + idling_cost, sol["action"]])
             return
         else:
@@ -99,17 +104,16 @@ class dfs_optimizer:
 
         # first layer of nodes initialize
         for node in self.graph[0]:
-            if node.v != 0:
-                delta_v = node.v - begin_node.v
-                delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
-                a = delta_v / delta_t
-                if a <= self.car.a_max and a >= self.car.a_min:
+            delta_v = node.v - begin_node.v
+            delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
+            a = delta_v / delta_t
+            if a < self.car.a_max and a > self.car.a_min:
 
-                    j = delta_t * self.car.w1 / \
-                        self.car.delta_t_min + abs(a/self.car.a_max)*self.car.w2
-                    edge = {"v1": begin_node, "v2": node, "delta_t": delta_t, "cost": j, "a": a}
-                    node.income_edge.append(edge)
-                    begin_node.outcome_edge.append(edge)
+                j = delta_t * self.car.w1 / \
+                    self.car.delta_t_min + abs(a/self.car.a_max)*self.car.w2
+                edge = {"v1": begin_node, "v2": node, "delta_t": delta_t, "cost": j, "a": a}
+                node.income_edge.append(edge)
+                begin_node.outcome_edge.append(edge)
 
         # later layes
         # build the graph
@@ -128,7 +132,7 @@ class dfs_optimizer:
                                 # this is to exclude the velocity tranfer 0 - 0 velocity happens
                                 delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
                                 a = delta_v / delta_t
-                                if a <= self.car.a_max and a >= self.car.a_min:
+                                if a < self.car.a_max and a > self.car.a_min:
                                     j = delta_t * self.car.w1 / self.car.delta_t_min + \
                                         abs(a/self.car.a_max) * self.car.w2
                                     edge = {"v1": begin_node, "v2": node,
@@ -149,7 +153,6 @@ class dfs_optimizer:
 
         sol = {"t": 0, "cost": 0, "action": []}
         Total_solutions = []  # stores tuples of [cost, tuple] combos for all status
-        
         # red light optimal sol
         self.DFS_red_light(self.graph[loc_num - 2][0], sol)
         # pick up the solution with lowest cost for this state's best solution
@@ -158,7 +161,6 @@ class dfs_optimizer:
             solution.insert(0, 0)
 
             Total_solutions.append(solution)
-
             self.sol = []
         for i in range(1, len(self.graph[loc_num - 2])):
 
@@ -170,7 +172,6 @@ class dfs_optimizer:
                 solution.insert(0, i)
 
                 Total_solutions.append(solution)
-
                 self.sol = []
 
         # in Total_solutions, the form is [index of the status in graph[-2], cost, action]
@@ -198,7 +199,7 @@ class dfs_optimizer:
                             node.action.append(a)
 
                 Final_solution.append([node.cost, node.action])
-
+        # print(Final_solution)
         optimal_solution = Sort_Tuple(Final_solution)[0]
         self.optimal_control = optimal_solution[1]
 

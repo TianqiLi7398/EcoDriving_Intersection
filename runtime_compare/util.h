@@ -14,6 +14,7 @@
 
 #include <iostream>
 #include <vector>
+#include <math.h>       /* fmod */
 
 using namespace std;
 
@@ -21,16 +22,16 @@ using namespace std;
 class traffic_light{
 public:
     
-    int t0, red_dur, gre_dur, yel_dur, total_dur;
-    int location;
+    double t0, red_dur, gre_dur, yel_dur, total_dur;
+    double location;
     int give_clock(int t);
     traffic_light(){
     
     }
-    traffic_light(int init_time, vector<int> timeset, int loc);
+    traffic_light(double init_time, vector<double> timeset, double loc);
 };
 
-traffic_light::traffic_light(int init_time, vector<int> timeset, int loc){
+traffic_light::traffic_light(double init_time, vector<double> timeset, double loc){
     t0 = init_time;
     red_dur = timeset[0];
     yel_dur = timeset[1];
@@ -40,14 +41,14 @@ traffic_light::traffic_light(int init_time, vector<int> timeset, int loc){
 };
 
 int traffic_light::give_clock(int t){
-    t = (t + t0) % total_dur;
+    t = fmod(t+ t0, total_dur); // get the residual of the total period time
     if (t < gre_dur){
-        return 1;
+        return 1; // green light
     }
     else if (t < gre_dur + yel_dur){
-        return 2;
+        return 2; // yellow light
     } else{
-        return 3;
+        return 3; // red light
     }
 };
 
@@ -61,6 +62,8 @@ int traffic_light::give_clock(int t){
 //    double v_min;
 //    vector<int> dynamics(vector<int> s, );
 //};
+
+// generate the linespace vector between double (a,b) with length of m
 vector<double> linspace(double a, double b, int m){
     vector<double> output;
     double delta = (b-a)/(double) (m-1);

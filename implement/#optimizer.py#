@@ -121,7 +121,7 @@ class dfs_optimizer:
                         # means this edge is reachable from initial state x0
                         begin_node = self.graph[i][j]
                         for node in self.graph[i+1]:
-                            if not (abs(node.x - self.light.location) > 1 and node.v == 0):
+                            if not (abs(node.x - self.light.location) > 1 and node.v == 0)
                                 # print(node.x, node.v)
                                 delta_v = node.v - begin_node.v
                                 # if begin_node.v + node.v > 0:
@@ -149,7 +149,6 @@ class dfs_optimizer:
 
         sol = {"t": 0, "cost": 0, "action": []}
         Total_solutions = []  # stores tuples of [cost, tuple] combos for all status
-        
         # red light optimal sol
         self.DFS_red_light(self.graph[loc_num - 2][0], sol)
         # pick up the solution with lowest cost for this state's best solution
