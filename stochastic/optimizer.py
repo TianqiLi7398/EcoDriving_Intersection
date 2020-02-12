@@ -34,7 +34,7 @@ class dfs_optimizer:
             self.v = v
             self.income_edge = []
             self.outcome_edge = []
-            self.cost = 99999
+            self.cost = 9999999
             self.action = None
 
     def inside_red(self, t):
@@ -236,7 +236,7 @@ class dfs_optimizer:
 
 
             if len(Final_solution) == 0:
-                return [], 99999, []
+                return [], 9999999, []
 
             optimal_solution = Sort_Tuple(Final_solution)[0]
 
@@ -297,7 +297,7 @@ class dfs_optimizer:
             
 
             if len(Final_solution) == 0:
-                return [], 99999, []
+                return [], 9999999, []
 
             optimal_solution = Final_solution[0]
             self.optimal_control = [optimal_solution[1]]
