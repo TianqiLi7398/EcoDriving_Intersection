@@ -152,7 +152,7 @@ class dfs_optimizer:
 
         loc_grid = np.linspace(start_loc + self.car.delta_x, end_loc, loc_num)
         vel_grid = np.linspace(0, self.car.v_max, n+ 1)
-       
+
 
         # print(loc_grid, vel_grid)
 
@@ -294,14 +294,14 @@ class dfs_optimizer:
                                 action = a
 
                 Final_solution.append([cost, action])
-            
+
 
             if len(Final_solution) == 0:
                 return [], 9999999, []
 
             optimal_solution = Final_solution[0]
             self.optimal_control = [optimal_solution[1]]
-            
+
 
             # calculate the velocity for every grid states
             self.cal_opt_vel(v)
@@ -315,7 +315,7 @@ class dfs_optimizer:
         self.record = [v]
         for i in range(len(self.optimal_control)):
             a = self.optimal_control[i]
-            
+
             self.record.append(np.sqrt(self.car.delta_x*2*a + self.record[i]**2))
 
     def feedback_controller(self, x, index):
@@ -325,6 +325,32 @@ class dfs_optimizer:
         v_ref = np.sqrt(self.record[index]**2 + 2*delta_x*a)
         delta_v = v_ref - x[1]
         return k*delta_v
+
+    # def controller(self, x):
+    #     if self.go_after_redlight:
+    #         if x[0] < self.light.location + self.car.delta_x:
+    #             return self.optimal_control[-1]
+    #     if x[0] < self.light.location:
+    #         if x[2] != 3:
+    #             # if x[3] == 3 and self.light.location - x[0] < 0.5 and x[1] == 0:
+    #             if x[3] == 3 and self.stop_at_redlight:
+    #                 self.go_after_redlight = True
+    #                 return self.optimal_control[-1]
+    #             index = math.floor((x[0] - self.car.x0[0])/self.car.delta_x)
+    #             # print(x[0], self.car.x0[0], self.car.delta_x, index)
+    #
+    #             return self.optimal_control[index]
+    #
+    #         elif x[3] == 3 and self.light.location - x[0] < 0.5 and abs(x[1]) < 1:
+    #             self.stop_at_redlight = True
+    #             return 'stop'
+    #         else:
+    #             index = math.floor((x[0] - self.car.x0[0])/self.car.delta_x)
+    #             # print(x[0], self.car.x0[0], self.car.delta_x, index)
+    #             return self.optimal_control[index]
+    #
+    #     else:
+    #         return 0
 
     def controller(self, x):
         if self.go_after_redlight:
