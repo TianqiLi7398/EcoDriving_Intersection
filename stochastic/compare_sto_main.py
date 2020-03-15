@@ -57,7 +57,10 @@ epslon = 10 ** -6
 
 delta_t_min = delta_x / v_max
 a_min, a_max = -5, 8
-w1, w2 = 1/8, 1/8
+w1 = 0.3   # work to do against friction
+w2 = 0.1   # idling cost
+w3 = 0.6   # accelerating cost weight
+true_idling_cost = w2
 
 t0_set = np.linspace(0, sum(timeset), sum(timeset)//2 + 1)
 
@@ -69,8 +72,8 @@ vel_collection = [5,10,15,20, 22]
 # vel_collection = [15]
 
 
-vel_collection = [20]
-t0_set = [28]
+vel_collection = [10]
+# t0_set = [28]
 
 
 for init_vel in vel_collection:
@@ -201,7 +204,7 @@ for init_vel in vel_collection:
             u = action_mdp[-1]
 
             #  state function here
-            old_x = copy.deepcopy(x_sto[0])
+            # old_x = copy.deepcopy(x_sto[0])
 
             if  sto_opt.light.location - x_sto[0] < 0.5 and x_sto[1] < 1:
                 if x_sto[2] == 3 and x_sto[-1] == 3:
@@ -228,7 +231,7 @@ for init_vel in vel_collection:
             traj_sto.append(x_sto[0])
             # vel_sto.append(x_sto[1])
             # u_sto.append(u)
-            cost_sto += cost_time_step(dt, x_sto[0] - old_x, u, w1, w2, a_max, v_max, true_idling_cost, x_sto, sto_opt.light, sto_opt.dx)
+            cost_sto += cost_time_step(dt, u, w1, w2, w3, x_sto, light)
             # cost_sto_rec.append(cost_time_step(dt, x_sto[0] - old_x, u, w1, w2, a_max, v_max, true_idling_cost, x_sto, sto_opt.light, sto_opt.dx))
             time_prof_sto.append(t)
 
@@ -249,7 +252,7 @@ for init_vel in vel_collection:
             ##############################
             #    fixed part
 
-            old_x = copy.deepcopy(x_det[0])
+            # old_x = copy.deepcopy(x_det[0])
 
             # try:
             u = optimizer.controller(x_det)
@@ -267,7 +270,7 @@ for init_vel in vel_collection:
             # vel_det.append(x_det[1])
             # u_det.append(u)
             # update the light signal
-            cost_det += cost_time_step(dt, x_det[0] - old_x, u, w1, w2, a_max, v_max, true_idling_cost, x_det, sto_opt.light, sto_opt.dx)
+            cost_det += cost_time_step(dt, u, w1, w2, w3, x_sto, light)
             time_prof_det.append(t)
             # cost_det_rec.append(cost_time_step(dt, x_det[0] - old_x, u, w1, w2, a_max, v_max, true_idling_cost, x_det, sto_opt.light, sto_opt.dx))
 
@@ -301,7 +304,7 @@ for init_vel in vel_collection:
             # vel_dum.append(x_dum[1])
             # u_dum.append(u)
 
-            cost_dum += cost_time_step(dt, x_dum[0] - old_x, u, w1, w2, a_max, v_max, true_idling_cost, x_dum, sto_opt.light, sto_opt.dx)
+            cost_dum += cost_time_step(dt, u, w1, w2, w3, x_sto, light)
             if x_dum[0] > dum_con.light.location and old_x < dum_con.light.location and x_dum[2] == 3:
                 # print('running the light!!!')
                 cost_dum += run_light_penalty

@@ -26,6 +26,10 @@ class dfs_optimizer:
         self.stop_at_redlight = False
         self.go_after_redlight = False
         self.init_state = []
+        self.w1 = 0.2   # work to do against friction
+        self.w2 = 0.1   # idling cost
+        self.w3 = 0.6   # accelerating cost weight
+        self.alpha = 2.0   # the stop-and-go cost
 
     class node:
         # this node stands for the grid states of (x,v) on the road
@@ -36,6 +40,17 @@ class dfs_optimizer:
             self.outcome_edge = []
             self.cost = 9999999
             self.action = None
+
+
+    def fuel_cost(self, a, v, delta_t, delta_v):
+        # basic cost
+        cost = self.w1 * delta_t
+
+        if a >  0:
+            # if it's accelerating, the work it does
+            cost += self.w3 * a * (v + delta_v / 2) * delta_t
+
+        return cost
 
     def inside_red(self, t):
         # to check when vehicle arrives at the intersection, if the signal is red
@@ -74,7 +89,7 @@ class dfs_optimizer:
             #  find if the total time is inside the green/red interval
             if meet_red_light[0]:
                 #  add the solution to the whole solution
-                idling_cost = meet_red_light[1] * 1
+                idling_cost = meet_red_light[1] * self.w2 + self.alpha
                 self.sol.append([sol["cost"] + idling_cost, sol["action"]])
             return
         else:
@@ -106,8 +121,9 @@ class dfs_optimizer:
                 a = delta_v / delta_t
                 if a <= self.car.a_max and a >= self.car.a_min:
 
-                    j = delta_t * self.car.w1 / \
-                        self.car.delta_t_min + abs(a/self.car.a_max)*self.car.w2
+                    # j = delta_t * self.car.w1 / \
+                    #     self.car.delta_t_min + abs(a/self.car.a_max)*self.car.w2
+                    j = self.fuel_cost(a, begin_node.v, delta_t, delta_v)
                     edge = {"v1": begin_node, "v2": node, "delta_t": delta_t, "cost": j, "a": a}
                     node.income_edge.append(edge)
                     begin_node.outcome_edge.append(edge)
@@ -130,8 +146,9 @@ class dfs_optimizer:
                                 delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
                                 a = delta_v / delta_t
                                 if a <= self.car.a_max and a >= self.car.a_min:
-                                    j = delta_t * self.car.w1 / self.car.delta_t_min + \
-                                        abs(a/self.car.a_max) * self.car.w2
+                                    # j = delta_t * self.car.w1 / self.car.delta_t_min + \
+                                    #     abs(a/self.car.a_max) * self.car.w2
+                                    j = self.fuel_cost(a, begin_node.v, delta_t, delta_v)
                                     edge = {"v1": begin_node, "v2": node,
                                             "delta_t": delta_t, "cost": j, "a": a}
                                     node.income_edge.append(edge)
@@ -223,8 +240,9 @@ class dfs_optimizer:
                             delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
                             a = delta_v / delta_t
                             if a < self.car.a_max and a > self.car.a_min:
-                                j = delta_t * self.car.w1 / self.car.delta_t_min + \
-                                    abs(a/self.car.a_max) * self.car.w2
+                                # j = delta_t * self.car.w1 / self.car.delta_t_min + \
+                                #     abs(a/self.car.a_max) * self.car.w2
+                                j = self.fuel_cost(a, begin_node.v, delta_t, delta_v)
                                 if j + pre_solution[1] < node.cost:
 
                                     node.cost = j + pre_solution[1]
@@ -267,8 +285,9 @@ class dfs_optimizer:
                         delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
                         a = delta_v / delta_t
                         if a < self.car.a_max and a > self.car.a_min:
-                            j = delta_t * self.car.w1 / self.car.delta_t_min + \
-                                abs(a/self.car.a_max) * self.car.w2
+                            # j = delta_t * self.car.w1 / self.car.delta_t_min + \
+                            #     abs(a/self.car.a_max) * self.car.w2
+                            j = self.fuel_cost(a, begin_node.v, delta_t, delta_v)
                             if j < cost:
 
                                 cost = j
@@ -286,8 +305,9 @@ class dfs_optimizer:
                         delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
                         a = delta_v / delta_t
                         if a < self.car.a_max and a > self.car.a_min:
-                            j = delta_t * self.car.w1 / self.car.delta_t_min + \
-                                abs(a/self.car.a_max) * self.car.w2
+                            # j = delta_t * self.car.w1 / self.car.delta_t_min + \
+                            #     abs(a/self.car.a_max) * self.car.w2
+                            j = self.fuel_cost(a, begin_node.v, delta_t, delta_v)
                             if j < cost:
 
                                 cost = j

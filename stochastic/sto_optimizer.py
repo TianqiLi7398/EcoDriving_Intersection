@@ -35,22 +35,24 @@ def this_clock(init_light, light):
     return t0_opt
 
 
-def cost_time_step(dt, dx, u, w1, w2, a_max, v_max, idling_cost, s, light, delta_x):
+def cost_time_step(dt, u, w1, w2, w3, s, light):
+
     # here delta_x is the grid x
     if u == 'stop':
-        return dt * idling_cost
+        return dt * w2
     elif u == 'end':
         return 0
     elif u == 0 and light.location - s[0] < 0.5 and light.location - s[0] > 0 and abs(s[1]) < 0.1  and (s[2] == 3 or s[3] == 3):
         # red light, idling situation
-        return dt * idling_cost
+        return dt * w2
 
-    t_min = dx / v_max
+    cost = w1 * dt
 
-    if t_min == 0:
-        print(u, s)
+    if u >  0:
+        # if it's accelerating, the work it does
+        cost += w3 * u * (s[1] - u * dt / 2) * dt
 
-    return (w1 * (dt/t_min) + w2 * abs(u / a_max)) * dx / delta_x
+    return cost
 
 class stochastic_light:
     # this 'stochastic' here means the vehicle knows the light pattern (green, yellow, red)
@@ -89,7 +91,21 @@ class stochastic_light:
         self.idling_cost = idling_cost
         self.meet_red_inter = False
         self.delta_t_min = self.dx / v_max
-        self.w1, self.w2 = 1/8, 1/8
+        self.w1 = 0.2   # work to do against friction
+        self.w2 = 0.1   # idling cost
+        self.w3 = 0.6   # accelerating cost weight
+        self.alpha = 2.0    # the stop-and-go cost
+
+    def fuel_cost(self, a, v, delta_t, delta_v):
+
+        cost = self.w1 * delta_t
+
+        if a >  0:
+            # if it's accelerating, the work it does
+            cost += self.w3 * a * (v + delta_v / 2) * delta_t
+
+
+        return cost
 
     def get_cur_period(self):
         if self.light_generate == 1:
@@ -129,7 +145,8 @@ class stochastic_light:
         a = delta_v / delta_t
         if a <= self.car.a_max and a >= self.car.a_min:
             # dynamic check
-            j = delta_t * self.w1 / self.delta_t_min + abs(a/self.car.a_max) * self.w2
+            # j = delta_t * self.w1 / self.delta_t_min + abs(a/self.car.a_max) * self.w2
+            j = self.fuel_cost(a, v, delta_t, delta_v)
 
             prob = self.change_prob_uni(ver, delta_t)
             if np.isclose(prob, 1):
@@ -201,6 +218,8 @@ class stochastic_light:
                     self.create_descendent(ver, x, v)
 
     def cal_idle(self, t, dt, light):
+
+        # calculate the expectation of idling cost in mdp transition. 
         if light == 1:
             if dt < self.light.yel_dur:
                 p = 0
@@ -226,7 +245,8 @@ class stochastic_light:
                 p = 0
                 time = 0
 
-        return p*time*self.idling_cost
+        # return p*time*self.idling_cost
+        return p * (time*self.w2 + self.alpha)
 
 
     def backtrack(self):
