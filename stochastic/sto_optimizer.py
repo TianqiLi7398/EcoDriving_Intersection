@@ -2,8 +2,7 @@ from util import opt_vehicle, traffic_light, vertex
 from optimizer import dfs_optimizer
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import matplotlib.lines as mlines
+
 import time
 import copy
 
