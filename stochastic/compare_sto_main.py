@@ -32,7 +32,7 @@ def find_nearest(x, n):
 
 start_point = time.time()
 x_init = 0
-v_init = 15
+v_init = 18
 m = 5  # m = light.loc - x_init / dx
 n = 23 # n = v_max - 1
 
@@ -57,7 +57,7 @@ epslon = 10 ** -6
 
 delta_t_min = delta_x / v_max
 a_min, a_max = -5, 8
-w1 = 0.3   # work to do against friction
+w1 = 0.2   # work to do against friction
 w2 = 0.1   # idling cost
 w3 = 0.6   # accelerating cost weight
 true_idling_cost = w2

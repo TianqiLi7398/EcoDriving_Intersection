@@ -53,7 +53,7 @@ vel_collection = [5,10,15,20, 22]
 
 vel_collection = [20]
 t0_ = 28
-init_vel = 18
+init_vel = 10
 
 
 t0_ = round(t0_, 1)

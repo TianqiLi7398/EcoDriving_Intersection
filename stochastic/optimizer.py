@@ -29,7 +29,7 @@ class dfs_optimizer:
         self.w1 = 0.2   # work to do against friction
         self.w2 = 0.1   # idling cost
         self.w3 = 0.6   # accelerating cost weight
-        self.alpha = 2.0   # the stop-and-go cost
+        self.alpha = 15.0   # the stop-and-go cost
 
     class node:
         # this node stands for the grid states of (x,v) on the road
@@ -48,7 +48,7 @@ class dfs_optimizer:
 
         if a >  0:
             # if it's accelerating, the work it does
-            cost += self.w3 * a * (v + delta_v / 2) * delta_t
+            cost = self.w3 * a * (v + delta_v / 2) * delta_t
 
         return cost
 

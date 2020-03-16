@@ -101,7 +101,7 @@ class stochastic_light:
 
         if a >  0:
             # if it's accelerating, the work it does
-            cost += self.w3 * a * (v + delta_v / 2) * delta_t
+            cost = self.w3 * a * (v + delta_v / 2) * delta_t
 
 
         return cost

@@ -57,7 +57,7 @@ epslon = 10 ** -6
 
 delta_t_min = delta_x / v_max
 a_min, a_max = -5, 8
-w1 = 0.2   # work to do against friction
+w1 = 0.1   # work to do against friction
 w2 = 0.1   # idling cost
 w3 = 0.6   # accelerating cost weight
 true_idling_cost = w2
@@ -73,7 +73,7 @@ vel_collection = [5,10,15,20, 22]
 # vel_collection = [15]
 
 
-vel_collection = [10]
+vel_collection = [18]
 # t0_set = [28]
 
 
@@ -103,7 +103,7 @@ for init_vel in vel_collection:
 
         optimizer = dfs_optimizer(light, car)
         U, cost, vel = optimizer.solver(init_state["x"], init_state["v"], 1)
-
+        print(U, vel, cost)
 
         # sto_opt = stochastic_light(light, init_state, m, n, v_max, car, idling_cost)
         # sto_opt.load_prior()
