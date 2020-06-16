@@ -69,6 +69,7 @@ class dfs_optimizer:
 
     def DFS_red_light(self, node, sol):
         if node.x < self.car.x0[0] + self.car.delta_x:
+            # print("enter A part!")
             meet_red_light = self.inside_red(sol["t"])
             #  find if the total time is inside the green/red interval
             if meet_red_light[0]:
@@ -77,6 +78,7 @@ class dfs_optimizer:
                 self.sol.append([sol["cost"] + idling_cost, sol["action"]])
             return
         else:
+            # print("enter B part! income edge # = ", len(node.income_edge))
             if node.income_edge != []:
                 # solution exists
                 for edge in node.income_edge:
@@ -110,6 +112,7 @@ class dfs_optimizer:
                     edge = {"v1": begin_node, "v2": node, "delta_t": delta_t, "cost": j, "a": a}
                     node.income_edge.append(edge)
                     begin_node.outcome_edge.append(edge)
+                    print("v1: (", edge["v1"].x, ", ", edge["v1"].v, ") -> (", edge["v2"].x, ", ", edge["v2"].v, "): c = ", edge["cost"])
 
         # later layes
         # build the graph
@@ -135,6 +138,10 @@ class dfs_optimizer:
                                             "delta_t": delta_t, "cost": j, "a": a}
                                     node.income_edge.append(edge)
                                     begin_node.outcome_edge.append(edge)
+                                    print("v1: (", edge["v1"].x, ", ", edge["v1"].v, ") -> (", edge["v2"].x, ", ", edge["v2"].v, "): c = ", edge["cost"])
+        
+        # for node in self.graph[4]:
+        #     print("v = ", node.v,"edge # = ", len(node.income_edge))
 
     def solver(self, dv):
         # first make the grid states
@@ -172,7 +179,7 @@ class dfs_optimizer:
                 Total_solutions.append(solution)
 
                 self.sol = []
-
+        print("self solution # = ", len(Total_solutions))
         # in Total_solutions, the form is [index of the status in graph[-2], cost, action]
 
         # after we know the all optimal solutions in front of traffic light, then we
@@ -196,9 +203,11 @@ class dfs_optimizer:
                             node.action = copy.deepcopy(pre_solution[2])
 
                             node.action.append(a)
-
+                print("at v = ", self.graph[-1][i].v, ", cost = ", node.cost)
                 Final_solution.append([node.cost, node.action])
 
+        print("total solutions #:", len(Final_solution))
+        
         optimal_solution = Sort_Tuple(Final_solution)[0]
         self.optimal_control = optimal_solution[1]
 
