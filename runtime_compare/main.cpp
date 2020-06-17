@@ -17,7 +17,8 @@ int main(){
     cout<<"the light is "<<(int) light1.give_clock(5)<<"\n";
     
     vector<double> init_state = {0, 15};
-    vector<int> size = {6, 22};
+    // vector<int> size = {6, 22};
+    vector<int> size = {11, 22};
     double dv_ = 1;
     double dt_ = .1;
     vector<double> a_threshold_ = {-5, 8};
