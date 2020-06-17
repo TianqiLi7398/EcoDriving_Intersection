@@ -1,7 +1,6 @@
 ## Dynamic Programming
 
-We have 3 paramenters here,
+We have 3 paramenters here, $x$
 $$
-\Delta x, \Delta v, \Delta T 
-$$ 
 asdf asdf 
+$$
