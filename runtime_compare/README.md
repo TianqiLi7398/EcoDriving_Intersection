@@ -1,5 +1,6 @@
 # Dynamic Programming
 
+<<<<<<< HEAD
 We have 3 paramenters here, 
 $$
 \Delta x, \Delta v, \Delta T
@@ -43,3 +44,9 @@ Thus here $$\Delta v$$ could be 2 or 1.
 # Forget everything above, this won't work at all!!!
 
 But at least we should know that from one node to another node, the time is less than the minimal time (3)
+=======
+We have 3 paramenters here, $x$
+$$
+asdf asdf 
+$$
+>>>>>>> 9a932c3271f85523aba594241ca3aaf6fdc82bb8
