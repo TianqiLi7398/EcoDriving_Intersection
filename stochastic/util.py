@@ -196,7 +196,7 @@ class vehicle:
 
 
 class opt_vehicle:
-    def __init__(self, delta_x, v_max, a_max, a_min, light, x0):
+    def __init__(self, delta_x, v_max, a_max, a_min, light, x0, dt):
         self.delta_x = delta_x
         self.epslon = 10 ** -6
         self.v_max = v_max
@@ -206,7 +206,7 @@ class opt_vehicle:
         self.w1, self.w2 = 1/8, 1/8
         self.light = light
         self.x0 = x0
-        self.delta_t = 0.01
+        self.delta_t = dt
 
     def dynamics(self, s, u):
         #     state of the system

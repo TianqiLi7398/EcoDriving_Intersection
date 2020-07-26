@@ -1,0 +1,8 @@
+{
+    "python.pythonPath": "C:\\Users\\agc20\\miniconda3\\python.exe",
+    "python.linting.enabled": true,
+    "python.linting.pycodestyleEnabled": true,
+    "launch": {
+    
+    }
+}

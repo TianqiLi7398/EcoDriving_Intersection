@@ -1,4 +1,4 @@
-#BSUB -J compute_pi       # job name
+#BSUB -J intersection_mdp       # job name
 #BSUB -L /bin/bash        # job's execution environment
 #BSUB -W 2:100             # wall clock runtime limit
 #BSUB -n 20               # number of cores

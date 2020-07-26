@@ -2,6 +2,8 @@ import copy
 import math
 import numpy as np
 from util import opt_vehicle, traffic_light
+import os
+import pandas as pd
 
 
 def Sort_Tuple(tup):
@@ -29,7 +31,16 @@ class dfs_optimizer:
         self.w1 = 0.2   # work to do against friction
         self.w2 = 0.1   # idling cost
         self.w3 = 0.6   # accelerating cost weight
-        self.alpha = 15.0   # the stop-and-go cost
+        self.alpha = 0.6289   # idling cost cm^3/s
+        self.x_base = 0
+        self.t_base = 0
+        self.v_base = 0
+        try:
+            # read csv file
+            self.cost_table = pd.read_csv(os.path.join(os.getcwd(), 'data', 'cost_fix_dis.csv'))    
+        except:
+            print("no cost table file found! ")
+        # print(self.red)
 
     class node:
         # this node stands for the grid states of (x,v) on the road
@@ -43,12 +54,14 @@ class dfs_optimizer:
 
 
     def fuel_cost(self, a, v, delta_t, delta_v):
-        # basic cost
-        cost = self.w1 * delta_t
+        # # basic cost
+        # cost = self.w1 * delta_t
 
-        if a >  0:
-            # if it's accelerating, the work it does
-            cost = self.w3 * a * (v + delta_v / 2) * delta_t
+        # if a >  0:
+        #     # if it's accelerating, the work it does
+        #     cost = self.w3 * a * (v + delta_v / 2) * delta_t
+        
+        cost = self.cost_table[(self.cost_table["v"] == int(v)) & (self.cost_table["dv"] == int(delta_v))]["cost"].values[0]
 
         return cost
 
@@ -73,34 +86,37 @@ class dfs_optimizer:
             return
         else:
             if node.income_edge != []:
-
                 for edge in node.income_edge:
-                    #                     new_sol = new_sol
+                    # new_sol = new_sol
                     new_sol = copy.deepcopy(sol)
                     new_sol["t"] += edge["delta_t"]
                     new_sol["cost"] += edge["cost"]
                     new_sol["action"].insert(0, edge["a"])
-#                     print(edge["v1"].x, edge["v1"].v)
+                    # print(edge["v1"].x, edge["v1"].v)
                     self.DFS_green_light(edge["v1"], new_sol)
 
     def DFS_red_light(self, node, sol):
         if node.x < self.init_state[0] + self.car.delta_x:
+            
             meet_red_light = self.inside_red(sol["t"])
             #  find if the total time is inside the green/red interval
             if meet_red_light[0]:
                 #  add the solution to the whole solution
-                idling_cost = meet_red_light[1] * self.w2 + self.alpha
+                # idling_cost = meet_red_light[1] * self.w2 + self.alpha
+                idling_cost = meet_red_light[1] * self.alpha 
                 self.sol.append([sol["cost"] + idling_cost, sol["action"]])
             return
         else:
+            
             if node.income_edge != []:
+                
                 # solution exists
                 for edge in node.income_edge:
                     new_sol = copy.deepcopy(sol)
                     new_sol["t"] += edge["delta_t"]
                     new_sol["cost"] += edge["cost"]
                     new_sol["action"].insert(0, edge["a"])
-#                     print(edge["v1"].x, edge["v1"].v)
+                    # print(edge["v1"].x, edge["v1"].v)
                     self.DFS_red_light(edge["v1"], new_sol)
 
     def build_graph(self, loc_grid, vel_grid, x, v):
@@ -115,7 +131,7 @@ class dfs_optimizer:
 
         # first layer of nodes initialize
         for node in self.graph[0]:
-            if node.v != 0:
+            if node.v != 0 and (not np.isclose(self.light.location, node.x)):
                 delta_v = node.v - begin_node.v
                 delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
                 a = delta_v / delta_t
@@ -127,7 +143,20 @@ class dfs_optimizer:
                     edge = {"v1": begin_node, "v2": node, "delta_t": delta_t, "cost": j, "a": a}
                     node.income_edge.append(edge)
                     begin_node.outcome_edge.append(edge)
+                    # print("edge: x = %s, v: %s -> %s" %(begin_node.x, begin_node.v, node.v))
+            elif np.isclose(self.light.location, node.x):
+                delta_v = node.v - begin_node.v
+                delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
+                a = delta_v / delta_t
+                if a <= self.car.a_max and a >= self.car.a_min:
 
+                    # j = delta_t * self.car.w1 / \
+                    #     self.car.delta_t_min + abs(a/self.car.a_max)*self.car.w2
+                    j = self.fuel_cost(a, begin_node.v, delta_t, delta_v)
+                    edge = {"v1": begin_node, "v2": node, "delta_t": delta_t, "cost": j, "a": a}
+                    node.income_edge.append(edge)
+                    begin_node.outcome_edge.append(edge)
+                    # print("edge: x = %s, v: %s -> x: %s, v: %s" %(begin_node.x, begin_node.v, node.x, node.v))
         # later layes
         # build the graph
         for i in range(len(loc_grid)):
@@ -156,6 +185,9 @@ class dfs_optimizer:
 
     def solver(self, x, v, dv):
         # we need to know the initial position, then directly optimize it
+        self.x_base = x
+        # self.t_base = 0
+        self.v_base = v
 
         m = int((self.light.location - x)/self.car.delta_x)
         n = int(self.car.v_max / dv)
@@ -169,7 +201,7 @@ class dfs_optimizer:
 
         loc_grid = np.linspace(start_loc + self.car.delta_x, end_loc, loc_num)
         vel_grid = np.linspace(0, self.car.v_max, n+ 1)
-
+        
 
         # print(loc_grid, vel_grid)
 
@@ -186,11 +218,11 @@ class dfs_optimizer:
         # else, we need to check if this can go through the light, then search for optimal
 
         if loc_num > 1:
-
+            
             # red light optimal sol
             self.DFS_red_light(self.graph[loc_num - 2][0], sol)
-
-
+            
+            
             # pick up the solution with lowest cost for this state's best solution
             # red light
             if self.sol != []:
@@ -213,15 +245,10 @@ class dfs_optimizer:
                     Total_solutions.append(solution)
 
                     self.sol = []
-
-
-
-
             # in Total_solutions, the form is [index of the status in graph[-2], cost, action]
 
             # after we know the all optimal solutions in front of traffic light, then we
             # move on to discover the step after passing the light, the final step
-
 
             Final_solution = []
             if len(Total_solutions) > 0:
@@ -239,7 +266,7 @@ class dfs_optimizer:
                             delta_v = node.v - begin_node.v
                             delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
                             a = delta_v / delta_t
-                            if a < self.car.a_max and a > self.car.a_min:
+                            if a <= self.car.a_max and a >= self.car.a_min:
                                 # j = delta_t * self.car.w1 / self.car.delta_t_min + \
                                 #     abs(a/self.car.a_max) * self.car.w2
                                 j = self.fuel_cost(a, begin_node.v, delta_t, delta_v)
@@ -269,12 +296,13 @@ class dfs_optimizer:
             return self.optimal_control, optimal_solution[0], self.record
 
         elif np.isclose(x, self.light.location):
+           
             Final_solution = []
             cost = 99999999
             action = None
             # check if the state could pass the intersection
             if self.light.give_clock(0) == 3 and np.isclose(v, 0):  #red light
-
+                
                 for i in range(len(self.graph[-1])):
                     if self.graph[-1][i].v != 0:
                         node = self.graph[-1][i]
@@ -284,7 +312,7 @@ class dfs_optimizer:
                         delta_v = node.v - begin_node.v
                         delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
                         a = delta_v / delta_t
-                        if a < self.car.a_max and a > self.car.a_min:
+                        if a <= self.car.a_max and a >= self.car.a_min:
                             # j = delta_t * self.car.w1 / self.car.delta_t_min + \
                             #     abs(a/self.car.a_max) * self.car.w2
                             j = self.fuel_cost(a, begin_node.v, delta_t, delta_v)
@@ -295,6 +323,7 @@ class dfs_optimizer:
 
                 Final_solution.append([cost, action])
             elif self.light.give_clock(0) != 3:
+                
                 for i in range(len(self.graph[-1])):
                     if self.graph[-1][i].v != 0:
                         node = self.graph[-1][i]
@@ -304,7 +333,7 @@ class dfs_optimizer:
                         delta_v = node.v - begin_node.v
                         delta_t = 2 * self.car.delta_x/(node.v + begin_node.v)
                         a = delta_v / delta_t
-                        if a < self.car.a_max and a > self.car.a_min:
+                        if a <= self.car.a_max and a >= self.car.a_min:
                             # j = delta_t * self.car.w1 / self.car.delta_t_min + \
                             #     abs(a/self.car.a_max) * self.car.w2
                             j = self.fuel_cost(a, begin_node.v, delta_t, delta_v)
@@ -396,18 +425,41 @@ class dfs_optimizer:
         else:
             return 0
 
-    def dynamics(self, s, u):
+    def dynamics(self, s, u, t):
         #     state of the system
         #     s_k = (y, v, l, l_p)
         #     s_{k+1} = f(s_k, u_k)
 
         if u == 'stop':
-            vel = 0
-            location = s[0]
+            s[1] = 0
+            
         else:
+            dt = t - self.t_base
+            s[0] = ((u * (dt ** 2)) / 2) + (self.v_base * dt) + self.x_base
+            s[1] = u * dt + self.v_base
+        s[-1] = s[2]
+        s[2] = self.light.give_clock(t)
+        ### l will be updated by external light class
+        return s
+    
+    def dynamics_change(self, s, t):
+        self.t_base = t - self.car.delta_t
+        self.v_base = s[1]
+        self.x_base = s[0]
+        return
 
-            location = s[0] + u * self.car.delta_t ** 2 / 2 + s[1] * self.car.delta_t
-            vel = s[1] + u * self.car.delta_t
-        lp = s[2]
-        l = lp
-        return [location, vel, l, lp]
+    def adjust_acc(self, v_aim, v):
+        dv = v_aim - v
+        if np.isclose(dv, 0):
+            return 0
+        return self.replan(self.car.delta_x, dv, v)
+
+    def replan(self, dx, dv, v):
+        
+        dt = dx / (v + dv * 0.5)
+        a = dv / dt
+        if a > self.car.a_max:
+            a = self.car.a_max
+        elif a < self.car.a_min:
+            a = self.car.a_min
+        return a
