@@ -19,7 +19,7 @@ b. Green, Yellow, Red: (20, 3, 15)
 ### b. function files
 `create_csv.py`: input light pattern and init velocity, generate `.csv` files of MDP;
 
-`monte_carlo_trail.py`: input light pattern and init velocity, based on the `.csv` files of MDP, do Monte Carlo trail in traffic signal time offset t_0, and save resuts in `_monte_carlo.csv` files.
+`monte_carlo_trial.py`: input light pattern and init velocity, based on the `.csv` files of MDP, do Monte Carlo trial in traffic signal time offset t_0, and save resuts in `_monte_carlo.csv` files.
 
 `cost_table_gen.py`: generate the cost table of (v, a) given fuel cost model as a `.csv` file.
 
