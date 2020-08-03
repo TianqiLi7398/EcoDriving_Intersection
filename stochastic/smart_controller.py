@@ -9,11 +9,11 @@ import math
 
 class smart_control:
 
-    def __init__(self, light, car, a_max, a_min):
+    def __init__(self, light, car, a_max, a_min, opt_vel=12):
         self.light = light
         self.car = car
         self.rush_yellow = 0
-        self.opt_vel = 12
+        self.opt_vel = opt_vel
         self.stop_at_red = False
         self.a_max = a_max 
         self.a_min = a_min 

@@ -32,22 +32,45 @@ def find_nearest(x, n):
         return n*m
     
 def cost_ins(a, v, dt):
-    # instanuous fuel cost
-    # basic cost
-    w1 = 0.2   # work to do against friction
-    w2 = 0.1   # idling cost
-    w3 = 0.6   # accelerating cost weight
+    # Speed v: m/s
+    # acceleration a: m/s^2
+    # output: originally is L/s, change it to cm^3/s for computation convinence 
+    alpha0 = 0.0006289
+    alpha1 = 2.676e-05
+    alpha2 = 1e-06
     if a == 'stop':
-        # idling cost
-        cost = dt * w2
-    elif a > 0:
-        # if it's accelerating, the work it does
-        cost = w3 * a * (v + 0.5 * a * dt) * dt
-    else:
-        # cost for breaking or no acc
-        cost = w1 * dt
-    
-    return cost
+        return alpha0 * 1000 * dt
+
+    vel=float(v)
+    vel = vel * 3.6 # convert m/s -> km/h
+    acc=float(a)
+    Chig = 1
+    Cr = 1.75 
+    c1 = 0.0328
+    C2 = 4.575
+    Afront = 2.28
+    etaD = 0.92
+    m = 1470; # Kg
+    Cdrag = 0.28
+    widle = 700; # (rpm)
+    d = 2.5
+    N = 4
+    FEhigh = 35
+    FEcity=25
+    #Fhwy=float(38.6013)*float((1.3466/float(FEhigh))+0.001376)
+    #G=0 #grade
+    #Calculate the total Resistance forces.
+    R = float((1.2256 / 25.92) *float(Cdrag) * float(Chig) *float(Afront) * (vel*vel) +
+    (9.8066 *float(m) * float(Cr) *( (float(c1) * vel +float(C2)) / 1000)))
+    #Input the calibrated parameters values.
+    P =float(((R + 1.04 * m * acc) / (3600 * etaD)) * vel)
+    #alpha0 = float((Pmf0 * widle * d * 3.42498) / (22164 * Q * N))
+
+    Fuel_Consumption =(alpha0 + alpha1 * P + alpha2 * (P *P))
+    if P < 0:
+        Fuel_Consumption = float(alpha0)
+    #print(alpha0,alpha1,alpha2)
+    return Fuel_Consumption * 1000 * dt
 
 alpha = 20    # the stop-and-go cost
 idling_cost = alpha
@@ -70,103 +93,103 @@ t0_set = np.linspace(0, sum(timeset), sum(timeset)//2 + 1)
 destination_loc = (m + 1) * delta_x + x_init
 vel_collection = [5, 10, 15, 20]
 dt = 0.01
-vel_collection = [5]
-t0_set = [28]
+# vel_collection = [5]
+# t0_set = [28]
+opt_vel_list = np.linspace(1, 22, 22)
 
 
 for init_vel in vel_collection:
+    # print("v_0 = ", init_vel)
+    # result = pd.DataFrame(columns=["v0", "t0", "det", "sto", "dum"])
+    for v_star in opt_vel_list:    
+        v_star_cost = 0
+        for t0_ in t0_set:
+            # print("t_0 = ", t0_)
+            light = traffic_light(t0_, timeset, light_location)
+            init_light = light.give_clock(0)
+            time_real = np.linspace(dt, light.T, 100*light.T)
 
-    result = pd.DataFrame(columns=["v0", "t0", "det", "sto", "dum"])
+            final_time = light.T
 
-    for t0_ in t0_set:
-        light = traffic_light(t0_, timeset, light_location)
-        init_light = light.give_clock(0)
-        time_real = np.linspace(dt, light.T, 100*light.T)
+            init_state = {
+                "x": x_init,
+                "v": init_vel,
+                "init_light": init_light,
+                "t": 0,
+                "must_happen": -1,
+                "out_edge": [],
+                "h": 99999}
+            x0 = [0, init_vel, init_light, init_light]
+            car = opt_vehicle(delta_x, v_max, a_max, a_min, light, x0, dt)
 
-        final_time = light.T
+            # dummy control
+            dum_con = smart_control(light, car, a_max, a_min, opt_vel=v_star)
+            traj_dum = []
+            time_prof_dum = []
+            cost_dum = 0
+            x_dum = copy.deepcopy(x0)
+            idling_dum = False
+            for t in time_real:
+                
+                if x_dum[0] >= destination_loc:
+                    break
 
-        init_state = {
-            "x": x_init,
-            "v": init_vel,
-            "init_light": init_light,
-            "t": 0,
-            "must_happen": -1,
-            "out_edge": [],
-            "h": 99999}
-        x0 = [0, init_vel, init_light, init_light]
-        car = opt_vehicle(delta_x, v_max, a_max, a_min, light, x0, dt)
-        
+                u_dum = dum_con.controller(x_dum)
 
-        # dummy control
-        dum_con = smart_control(light, car, a_max, a_min)
-        traj_dum = []
-        time_prof_dum = []
-        cost_dum = 0
-        x_dum = copy.deepcopy(x0)
-        idling_dum = False
-        for t in time_real:
+                cost_dum += cost_ins(u_dum, x_dum[1], dt)
+                x_dum = dum_con.dynamics(x_dum, u_dum)
+
+                # update the light signal
+
+                x_dum[2] = light.give_clock(t)
+                traj_dum.append(x_dum[0])
+                
+
+                time_prof_dum.append(t)
             
-            if x_dum[0] >= destination_loc:
-                break
+            v_star_cost += cost_dum
+        print("c(v0= %s, v*= %s) = %s"%(init_vel, v_star, v_star_cost))
 
-            u_dum = dum_con.controller(x_dum)
+        # plt.rcParams.update({'font.size': 15})
+        # plt.figure(figsize=(10, 8))
 
-            cost_dum += cost_ins(u_dum, x_dum[1], dt)
-            x_dum = dum_con.dynamics(x_dum, u_dum)
-
-            # update the light signal
-
-            x_dum[2] = light.give_clock(t)
-            traj_dum.append(x_dum[0])
-            
-
-            time_prof_dum.append(t)
-
-            ##############################
-        if dum_con.idling:
-            cost_dum += alpha
-
-        plt.rcParams.update({'font.size': 15})
-        plt.figure(figsize=(10, 8))
-
-        # plot the trajectory
-        # plt.plot(time_real, S[:, 0])
+        # # plot the trajectory
+        # # plt.plot(time_real, S[:, 0])
 
 
-        # plt.plot(time_prof_sto, traj_sto, 'b')
-        # plt.plot(time_prof_det, traj_det, 'k')
-        plt.plot(time_prof_dum, traj_dum, 'g')
-        plt.legend(['sto', 'det', "smart"])
-        # plt.plot(time_real, vel, 'b')
+        # # plt.plot(time_prof_sto, traj_sto, 'b')
+        # # plt.plot(time_prof_det, traj_det, 'k')
+        # plt.plot(time_prof_dum, traj_dum, 'g')
+        # plt.legend(['sto', 'det', "smart"])
+        # # plt.plot(time_real, vel, 'b')
 
-        red, green, yellow = light.trafficline(final_time)
-        red_num, green_num, yel_num = len(red), len(green), len(yellow)
-        for j in range(int(red_num/2)):
-            newline(red[2*j], red[2*j + 1], 'r')
-        for j in range(int(green_num/2)):
-            newline(green[2*j], green[2*j + 1], 'g')
-        for j in range(int(yel_num/2)):
-            newline(yellow[2*j], yellow[2*j + 1], 'y')
+        # red, green, yellow = light.trafficline(final_time)
+        # red_num, green_num, yel_num = len(red), len(green), len(yellow)
+        # for j in range(int(red_num/2)):
+        #     newline(red[2*j], red[2*j + 1], 'r')
+        # for j in range(int(green_num/2)):
+        #     newline(green[2*j], green[2*j + 1], 'g')
+        # for j in range(int(yel_num/2)):
+        #     newline(yellow[2*j], yellow[2*j + 1], 'y')
 
-        plt.xlabel('time/sec')
-        plt.ylabel('position/m')
-        plt.xlim([0, light.T])
-        plt.ylim([0, light_location * 1.5])
-        #plt.legend(['optimal trajectory', 'red', 'green', 'yellow'])
+        # plt.xlabel('time/sec')
+        # plt.ylabel('position/m')
+        # plt.xlim([0, light.T])
+        # plt.ylim([0, light_location * 1.5])
+        # #plt.legend(['optimal trajectory', 'red', 'green', 'yellow'])
 
-        plt.title('Comparison between planning on single vehicle deterministic and stochastic traffic light, t0 = '+str(t0_))
-        plt.grid(color='b', linestyle='-', linewidth=.2)
-        prefix = str(x0[1])
-        pic_name = 't0=' + str(t0_) + '_smt.png'
-        foldername = 'v0='+ str(x0[1])
-        plt.savefig(os.path.join(os.getcwd(), 'pics', foldername, pic_name))
-        print(t0_, 'saved!')
+        # plt.title('Comparison between planning on single vehicle deterministic and stochastic traffic light, t0 = '+str(t0_))
+        # plt.grid(color='b', linestyle='-', linewidth=.2)
+        # prefix = str(x0[1])
+        # pic_name = 't0=' + str(t0_) + '_smt.png'
+        # foldername = 'v0='+ str(x0[1])
+        # plt.savefig(os.path.join(os.getcwd(), 'pics', foldername, pic_name))
+        # print(t0_, 'saved!')
     
-        print(cost_dum)
+        
 
 
     
     # filename = str(0) + '-' + str(x0[1]) + '-' + str(light.red_dur)+'-'+str(light.yel_dur)+'-'+str(light.gre_dur)+'_result.csv'
     # result.to_csv(os.path.join(os.getcwd(), 'data', filename), sep='\t')
     # print('v0 = ', x0[1], ' csv result saved!')
-

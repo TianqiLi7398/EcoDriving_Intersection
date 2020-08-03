@@ -79,7 +79,7 @@ n = 23   # n = v_max - 1
 t0 = 36                                    # initial clock, irrelavent to mdp generation
 light_location = 50
 timeset = [26, 5, 25]                      # a, red, yellow, green
-timeset = [15, 3, 20]                      # b, red, yellow, green
+# timeset = [15, 3, 20]                      # b, red, yellow, green
 # timeset = [25, 5, 30]                      # c, red, yellow, green
 trafficFolderName = str(timeset[0]) + '_' + str(timeset[1]) + '_' + str(timeset[2])
 dv = 1
@@ -95,6 +95,7 @@ t0_set = np.linspace(0, sum(timeset), sum(timeset)//2 + 1)
 destination_loc = (m + 1) * delta_x + x_init
 vel_collection = [5, 10, 15, 20]
 dt = 0.01
+v_star = 7
 # vel_collection = [5]
 # t0_set = [24]
 
@@ -126,136 +127,136 @@ for init_vel in vel_collection:
         
         # A. Stochastic part 
         
-        # sto_opt = stochastic_light(light, init_state, m, n, v_max, car, idling_cost)
-        # sto_opt.load_prior()
-        # time_prof_sto = []
-        # traj_sto = []
-        # x_sto = copy.deepcopy(x0)
-        # # u_sto = []
-        # action_mdp = [sto_opt.mdp[(sto_opt.mdp["x"]==x0[0]) & (sto_opt.mdp["v"]==x0[1]) & (sto_opt.mdp["init_light"]==init_light) & (sto_opt.mdp["t"]==0)]["best_action"].values[0]]
-        # light_changed = False
-        # fixed_policy = []
-        # cost_sto = 0
-        # compansate_light = 0
-        # fixed_policy_bool = False
-        # idling_sto = False
+        sto_opt = stochastic_light(light, init_state, m, n, v_max, car, idling_cost)
+        sto_opt.load_prior()
+        time_prof_sto = []
+        traj_sto = []
+        x_sto = copy.deepcopy(x0)
+        # u_sto = []
+        action_mdp = [sto_opt.mdp[(sto_opt.mdp["x"]==x0[0]) & (sto_opt.mdp["v"]==x0[1]) & (sto_opt.mdp["init_light"]==init_light) & (sto_opt.mdp["t"]==0)]["best_action"].values[0]]
+        light_changed = False
+        fixed_policy = []
+        cost_sto = 0
+        compansate_light = 0
+        fixed_policy_bool = False
+        idling_sto = False
 
         
-        # for t in time_real:
-        #     # if x_sto[1] > 0:
-        #     #     print(x_sto, t)
-        #     # 1. check loop end
-        #     if x_sto[0] >= destination_loc:
-        #         break
-        #     # 2. check light change
-        #     if x_sto[-1] != x_sto[-2] and x_sto[0] < sto_opt.light.location:
-        #         #### when light changed, switch to fixed pattern
-        #         light_changed = True
-        #         change_time = t
+        for t in time_real:
+            # if x_sto[1] > 0:
+            #     print(x_sto, t)
+            # 1. check loop end
+            if x_sto[0] >= destination_loc:
+                break
+            # 2. check light change
+            if x_sto[-1] != x_sto[-2] and x_sto[0] < sto_opt.light.location:
+                #### when light changed, switch to fixed pattern
+                light_changed = True
+                change_time = t
 
-        #     # logic for the following
-        #     # light_changed: 2a. next x after first light change captured -> generate fixed_policy
-        #     #             2b. after this, fixed_policy is not empty, follow the fixed policy
-        #     # light_changed not: follow mdp for new location gride
+            # logic for the following
+            # light_changed: 2a. next x after first light change captured -> generate fixed_policy
+            #             2b. after this, fixed_policy is not empty, follow the fixed policy
+            # light_changed not: follow mdp for new location gride
 
-        #     if light_changed:
+            if light_changed:
 
-        #         if not fixed_policy_bool:
-        #             # print("captured change, ", x_sto, action_mdp)
-        #             if len(action_mdp) - 1 < x_sto[0]//sto_opt.dx:
-        #                 # light change happens at the time when the change happens in the 
-        #                 compansate_light -= 1
-        #             fixed_policy_bool = True
+                if not fixed_policy_bool:
+                    # print("captured change, ", x_sto, action_mdp)
+                    if len(action_mdp) - 1 < x_sto[0]//sto_opt.dx:
+                        # light change happens at the time when the change happens in the 
+                        compansate_light -= 1
+                    fixed_policy_bool = True
 
-        #             cur_light = x_sto[-2]
-        #             t0 = this_clock(cur_light, light) + t - change_time
-        #             opt_a, opt_plan, opt_vel = sto_opt.light_change_replan(x_sto[0], x_sto[1], t0, u)
-        #             # print(opt_plan, opt_a)
-        #             # analyze
-        #             if x_sto[0]//sto_opt.dx + 1 > len(action_mdp):
-        #                 compansate_light = -1
+                    cur_light = x_sto[-2]
+                    t0 = this_clock(cur_light, light) + t - change_time
+                    opt_a, opt_plan, opt_vel = sto_opt.light_change_replan(x_sto[0], x_sto[1], t0, u)
+                    # print(opt_plan, opt_a)
+                    # analyze
+                    if x_sto[0]//sto_opt.dx + 1 > len(action_mdp):
+                        compansate_light = -1
                     
-        #             fixed_policy = opt_plan
-        #             action_mdp.append(opt_a)
-        #             # print("current state, ", x_sto, ", t = ", t)
-        #             # print("opt plan: ", opt_vel)
-        #             sto_opt.dynamics_change(x_sto, t)
+                    fixed_policy = opt_plan
+                    action_mdp.append(opt_a)
+                    # print("current state, ", x_sto, ", t = ", t)
+                    # print("opt plan: ", opt_vel)
+                    sto_opt.dynamics_change(x_sto, t)
                    
 
-        #         elif x_sto[0] // sto_opt.dx + 2 + compansate_light > len(action_mdp):
-        #             if x_sto[0] >= sto_opt.light.location + sto_opt.dx:
-        #                 break
+                elif x_sto[0] // sto_opt.dx + 2 + compansate_light > len(action_mdp):
+                    if x_sto[0] >= sto_opt.light.location + sto_opt.dx:
+                        break
                    
-        #             # follow the fixed_policy
-        #             new_act = fixed_policy.pop(0)
-        #             # print("state = ", x_sto)
-        #             # print(new_act)
-        #             action_mdp.append(new_act)
-        #             sto_opt.dynamics_change(x_sto, t)
+                    # follow the fixed_policy
+                    new_act = fixed_policy.pop(0)
+                    # print("state = ", x_sto)
+                    # print(new_act)
+                    action_mdp.append(new_act)
+                    sto_opt.dynamics_change(x_sto, t)
 
-        #     elif x_sto[0] // sto_opt.dx + 1 > len(action_mdp):
-        #         # the vehicle goes to a new grid, we should change the policy
-        #         # print(x_sto, action_mdp, t)
-        #         if x_sto[0] < sto_opt.light.location + sto_opt.dx:
-        #             x = find_nearest(x_sto[0], sto_opt.dx)
-        #             v = find_nearest(x_sto[1], sto_opt.dv)
+            elif x_sto[0] // sto_opt.dx + 1 > len(action_mdp):
+                # the vehicle goes to a new grid, we should change the policy
+                # print(x_sto, action_mdp, t)
+                if x_sto[0] < sto_opt.light.location + sto_opt.dx:
+                    x = find_nearest(x_sto[0], sto_opt.dx)
+                    v = find_nearest(x_sto[1], sto_opt.dv)
 
-        #             # vehicle does not reach the traffic light yet, action refer to traffic light
-        #             if np.isclose(x, light.location):
-        #                 # find solution in fixed solution
+                    # vehicle does not reach the traffic light yet, action refer to traffic light
+                    if np.isclose(x, light.location):
+                        # find solution in fixed solution
                         
-        #                 new_act = float(sto_opt.fixed_result[(sto_opt.fixed_result["x"]==x) & (sto_opt.fixed_result["v"]==v) & (sto_opt.fixed_result["init_light"]==init_light)]["plan"].values[0].strip('[]'))
-        #             else:
-        #                 dT = 10000
-        #                 index = -1
-        #                 # print(t, x[0], x[1], sto_opt.mdp[sto_opt.mdp["x"] == x[0]][sto_opt.mdp["v"] == x[1]]["t"].values)
-        #                 for i in range(len(sto_opt.mdp[(sto_opt.mdp["x"]==x) & (sto_opt.mdp["v"]==v) & (sto_opt.mdp["init_light"]==init_light)]["t"].values)):
-        #                     t_ = sto_opt.mdp[(sto_opt.mdp["x"]==x) & (sto_opt.mdp["v"]==v) & (sto_opt.mdp["init_light"]==init_light)]["t"].values[i]
-        #                     if abs(t - t_) < dT:
-        #                         dT = abs(t - t_)
-        #                         index = i
+                        new_act = float(sto_opt.fixed_result[(sto_opt.fixed_result["x"]==x) & (sto_opt.fixed_result["v"]==v) & (sto_opt.fixed_result["init_light"]==init_light)]["plan"].values[0].strip('[]'))
+                    else:
+                        dT = 10000
+                        index = -1
+                        # print(t, x[0], x[1], sto_opt.mdp[sto_opt.mdp["x"] == x[0]][sto_opt.mdp["v"] == x[1]]["t"].values)
+                        for i in range(len(sto_opt.mdp[(sto_opt.mdp["x"]==x) & (sto_opt.mdp["v"]==v) & (sto_opt.mdp["init_light"]==init_light)]["t"].values)):
+                            t_ = sto_opt.mdp[(sto_opt.mdp["x"]==x) & (sto_opt.mdp["v"]==v) & (sto_opt.mdp["init_light"]==init_light)]["t"].values[i]
+                            if abs(t - t_) < dT:
+                                dT = abs(t - t_)
+                                index = i
                                 
-        #                 new_act = sto_opt.mdp[(sto_opt.mdp["x"]==x) & (sto_opt.mdp["v"]==v) & (sto_opt.mdp["init_light"]==init_light)]["best_action"].values[index]
+                        new_act = sto_opt.mdp[(sto_opt.mdp["x"]==x) & (sto_opt.mdp["v"]==v) & (sto_opt.mdp["init_light"]==init_light)]["best_action"].values[index]
                    
-        #             new_act = sto_opt.adjust_acc(sto_opt.dx + x - x_sto[0], v, x_sto[1], new_act)
+                    new_act = sto_opt.adjust_acc(sto_opt.dx + x - x_sto[0], v, x_sto[1], new_act)
                     
-        #             action_mdp.append(new_act)
-        #             sto_opt.dynamics_change(x_sto, t)
+                    action_mdp.append(new_act)
+                    sto_opt.dynamics_change(x_sto, t)
 
-        #         else:
-        #             # vehicle goes to the end of the road
-        #             # print(x_sto)
-        #             new_act = 'stop'
-        #             break
+                else:
+                    # vehicle goes to the end of the road
+                    # print(x_sto)
+                    new_act = 'stop'
+                    break
                     
 
-        #     u = action_mdp[-1]
+            u = action_mdp[-1]
 
-        #     # state function here
-        #     if sto_opt.light.location - x_sto[0] < 0.5 and sto_opt.light.location > x_sto[0] and x_sto[1] < 1:
+            # state function here
+            if sto_opt.light.location - x_sto[0] < 0.5 and sto_opt.light.location > x_sto[0] and x_sto[1] < 1:
                 
-        #         if x_sto[2] == 3 and x_sto[-1] == 3:
-        #             # idling happens
-        #             idling_sto = True
-        #             x_sto[1] = 0
-        #             u = 'stop'
-        #             sto_opt.dynamics_change(x_sto, t)
-        #         elif x_sto[2] == 1 and len(fixed_policy) > 0 and light_changed:
-        #             # change to green light, use next acc
+                if x_sto[2] == 3 and x_sto[-1] == 3:
+                    # idling happens
+                    idling_sto = True
+                    x_sto[1] = 0
+                    u = 'stop'
+                    sto_opt.dynamics_change(x_sto, t)
+                elif x_sto[2] == 1 and len(fixed_policy) > 0 and light_changed:
+                    # change to green light, use next acc
                    
-        #             u = fixed_policy[0]
-        #             sto_opt.dynamics_change(x_sto, t)
+                    u = fixed_policy[0]
+                    sto_opt.dynamics_change(x_sto, t)
                    
-        #     cost_sto += cost_ins(u, x_sto[1], dt)
-        #     x_sto = sto_opt.dynamics(x_sto, u, t)
+            cost_sto += cost_ins(u, x_sto[1], dt)
+            x_sto = sto_opt.dynamics(x_sto, u, t)
             
-        #     # update the light signal
+            # update the light signal
 
-        #     x_sto[2] = light.give_clock(t)
-        #     traj_sto.append(x_sto[0])
+            x_sto[2] = light.give_clock(t)
+            traj_sto.append(x_sto[0])
             
-        #     # cost_sto += cost_time_step(dt, u, w1, w2, w3, x_sto, light)
-        #     time_prof_sto.append(t)
+            # cost_sto += cost_time_step(dt, u, w1, w2, w3, x_sto, light)
+            time_prof_sto.append(t)
         
 
 
@@ -313,38 +314,40 @@ for init_vel in vel_collection:
         
 
         # dummy control
-        # dum_con = smart_control(light, car, a_max, a_min)
-        # traj_dum = []
-        # time_prof_dum = []
-        # cost_dum = 0
-        # x_dum = copy.deepcopy(x0)
-        # idling_dum = False
-        # for t in time_real:
+        dum_con = smart_control(light, car, a_max, a_min, opt_vel=v_star)
+        traj_dum = []
+        time_prof_dum = []
+        cost_dum = 0
+        x_dum = copy.deepcopy(x0)
+        idling_dum = False
+        for t in time_real:
             
-        #     if x_dum[0] >= destination_loc:
-        #         break
+            if x_dum[0] >= destination_loc:
+                break
 
-        #     u_dum = dum_con.controller(x_dum)
+            u_dum = dum_con.controller(x_dum)
 
-        #     cost_dum += cost_ins(u_dum, x_dum[1], dt)
-        #     x_dum = dum_con.dynamics(x_dum, u_dum)
+            cost_dum += cost_ins(u_dum, x_dum[1], dt)
+            x_dum = dum_con.dynamics(x_dum, u_dum)
 
-        #     # update the light signal
+            # update the light signal
 
-        #     x_dum[2] = light.give_clock(t)
-        #     traj_dum.append(x_dum[0])
+            x_dum[2] = light.give_clock(t)
+            traj_dum.append(x_dum[0])
             
 
-        #     time_prof_dum.append(t)
+            time_prof_dum.append(t)
 
-        #     ##############################
+            ##############################
         # plot the trajectory
-        # plt.plot(time_real, S[:, 0])
+        
 
+        time_prof_sto += t0_
         time_prof_det += t0_
-        # plt.plot(time_prof_sto, traj_sto, 'b')
-        plt.plot(time_prof_det, traj_det, 'k')
-        # plt.plot(time_prof_dum, traj_dum, 'g')
+        time_prof_dum += t0_
+        plt.plot(time_prof_sto, traj_sto, 'gold', label='partial',linewidth=0.5)
+        plt.plot(time_prof_det, traj_det, 'darkorchid', label='full',linewidth=0.5)
+        plt.plot(time_prof_dum, traj_dum, 'limegreen', label='human',linewidth=0.5)
         
         # plt.plot(time_real, vel, 'b')
         if np.isclose(t0_, 0):
@@ -361,12 +364,12 @@ for init_vel in vel_collection:
     plt.ylabel('position/m')
     plt.xlim([0, 1.5 * light.T])
     plt.ylim([0, light_location * 1.5])
-    #plt.legend(['optimal trajectory', 'red', 'green', 'yellow'])
-
-    plt.title('Comparison of fuel cost, v0 = '+str(init_vel))
+    plt.legend(["partial", "full", "human"])
+    plt.tight_layout()
+    # plt.title('Behavior set, v0 = '+str(init_vel))
     plt.grid(color='b', linestyle='-', linewidth=.2)
     foldername = 'v0='+ str(x0[1])
-    pic_name = 'det_profile_v0='+ str(init_vel)+ '.png'
+    pic_name = str(timeset[2]) + '_vel_profile_v0='+ str(init_vel)+'_v_star=' +str(v_star)+ '.png'
     plt.savefig(os.path.join(os.getcwd(), 'pics', trafficFolderName, foldername, pic_name))
     plt.close()
 
