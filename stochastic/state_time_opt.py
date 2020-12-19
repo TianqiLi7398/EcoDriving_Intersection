@@ -23,14 +23,15 @@ class state_space:
         self.stop_at_redlight = False
         self.go_after_redlight = False
         self.init_state = []
-        self.w1 = 0.2   # work to do against friction
-        self.w2 = 0.1   # idling cost
-        self.w3 = 0.6   # accelerating cost weight
-        self.alpha = 0.6289   # idling cost cm^3/s
+        # self.w1 = 0.2   # work to do against friction
+        # self.w2 = 0.1   # idling cost
+        # self.w3 = 0.6   # accelerating cost weight
+        # self.alpha = 0.6289   # idling cost cm^3/s
         self.x_base = 0
         self.t_base = 0
         self.v_base = 0
         
+    def build_graph(self):
         
     
     def solver(self, x, v, dv):
