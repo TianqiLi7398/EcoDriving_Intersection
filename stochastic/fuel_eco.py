@@ -43,7 +43,7 @@ def FC(v, a):
 
 def cost_fuel(v, a, delta_t):
     dt = 0.01
-    length = int(delta_t//dt)
+    length = round(delta_t/dt)
     # print(length)
     # time = np.linspace(dt, length *dt, length)
     cost = 0

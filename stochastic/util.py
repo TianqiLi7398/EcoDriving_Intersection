@@ -207,6 +207,7 @@ class opt_vehicle:
         self.light = light
         self.x0 = x0
         self.delta_t = dt
+        self.dt = dt
 
     def dynamics(self, s, u):
         #     state of the system
@@ -218,13 +219,13 @@ class opt_vehicle:
         l = lp
         return [location, vel, l, lp]
 
-    def optimal_controller(self, x):
-        # TODO remains correction
-        if x[0] < 50:
-            index = math.floor(x[0]/10)
-            return opt_sol[index]
-        else:
-            return 0
+    # def optimal_controller(self, x):
+    #     # TODO remains correction
+    #     if x[0] < 50:
+    #         index = math.floor(x[0]/10)
+    #         return opt_sol[index]
+    #     else:
+    #         return 0
 
 
 class vertex:

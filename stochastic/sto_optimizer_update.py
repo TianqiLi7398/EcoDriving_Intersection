@@ -77,7 +77,7 @@ class stochastic_light:
         filename = os.path.join(os.getcwd(),'data', filename)
         try:
             self.fixed_result = pd.read_csv(filename, sep='\t')
-            print("deterministic file found!")
+            # print("deterministic file found!")
         except OSError as e:
             print("deterministic file not found!")
             self.generate_deter(filename)
@@ -344,10 +344,10 @@ class stochastic_light:
     def load_prior(self):
         filename = str(self.init_state["x"]) + '-' + str(self.init_state["v"]) + '-' + str(self.light.red_dur)+'-'+str(self.light.yel_dur)+'-'+str(self.light.gre_dur)+'_sto.csv'
         filename = os.path.join(os.getcwd(),'data', filename)
-        print("file to be opened "+ filename)
+        # print("file to be opened "+ filename)
         try:
             self.mdp = pd.read_csv(filename, sep = '\t')
-            print("file opened!")
+            # print("file opened!")
         except OSError as e:
             print(filename + " doesn't exists in the local path!")
             #  calculate the time for generating

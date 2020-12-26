@@ -1,19 +1,26 @@
 from util import opt_vehicle, traffic_light, vertex
 from optimizer import dfs_optimizer
 from sto_optimizer_update import stochastic_light, this_clock, next_clock
-from dum_controller import dummy_control
+from state_time_opt import state_space
 from smart_controller import smart_control
 import numpy as np
 import pandas as pd
-# import matplotlib.pyplot as plt
-# import matplotlib.lines as mlines
+import matplotlib.pyplot as plt
+import matplotlib.lines as mlines
 import time
 import pandas as pd
 import copy
 import os
-import random
 
+def newline(p1, p2, color):
+    # draw a line from p1=[x,y] to p2
+    ax = plt.gca()
+    ymin, ymax = p1[1], p2[1]
+    xmin, xmax = p1[0], p2[0]
 
+    l = mlines.Line2D([xmin, xmax], [ymin, ymax], color=color)
+    ax.add_line(l)
+    return l
 
 def find_nearest(x, n):
     # given x, find nearst integer times of n
@@ -34,9 +41,9 @@ def cost_ins(a, v, dt):
     if a == 'stop':
         return alpha0 * 1000 * dt
 
-    vel= float(v)
+    vel=float(v)
     vel = vel * 3.6 # convert m/s -> km/h
-    acc= float(a)
+    acc=float(a)
     Chig = 1
     Cr = 1.75 
     c1 = 0.0328
@@ -65,16 +72,14 @@ def cost_ins(a, v, dt):
     #print(alpha0,alpha1,alpha2)
     return Fuel_Consumption * 1000 * dt
 
-init_time = time.time()
 
 idling_cost = 0
 x_init = 0
 m = 5   # m = light.loc - x_init / dx
 n = 23   # n = v_max - 1
-t0 = 36                                    # initial clock, irrelavent to mdp generation
-light_location = 50
-# timeset = [26, 5, 25]                      # a, red, yellow, green
-timeset = [15, 3, 20]                      # b, red, yellow, green
+light_location = 50.0
+timeset = [26, 5, 25]                      # a, red, yellow, green
+# timeset = [15, 3, 20]                      # b, red, yellow, green
 # timeset = [25, 5, 30]                      # c, red, yellow, green
 trafficFolderName = str(timeset[0]) + '_' + str(timeset[1]) + '_' + str(timeset[2])
 dv = 1
@@ -82,25 +87,33 @@ dv = 1
 v_max = (n-1)*dv     
 delta_x = (light_location - x_init) / m
 a_min, a_max = -5, 8
+
+t0_set = np.linspace(0, sum(timeset), sum(timeset)//2 + 1)
 destination_loc = (m + 1) * delta_x + x_init
 vel_collection = [5, 10, 15, 20]
+vel_collection = [20]
 dt = 0.01
-# vel_collection = [5, 10, 15, 20]
+v_star = 7
+# vel_collection = [5]
 # t0_set = [24]
-T = sum(timeset)
-trail_num = 500
+colorlist = ['y', 'g', 'b', 'r']
 
 for init_vel in vel_collection:
 
     result = pd.DataFrame(columns=["v0", "t0", "det", "sto", "dum"])
+    plt.rcParams.update({'font.size': 15})
+    plt.figure(figsize=(10, 8))
 
-    for trail in range(trail_num):
-        t0_ = random.uniform(0, T)
+
+    # for t0_ in t0_set:
+    for lll in range(4):
+        t0_ = t0_set[[15, 16, 17, 18][lll]]
+        print("t0 = ", t0_)
         light = traffic_light(t0_, timeset, light_location)
         init_light = light.give_clock(0)
         time_real = np.linspace(dt, light.T, 100*light.T)
 
-        final_time = light.T
+        final_time = 1.5 * light.T
 
         init_state = {
             "x": x_init,
@@ -249,7 +262,7 @@ for init_vel in vel_collection:
         
 
 
-        # determined case
+        # B. determined case
         x_det = copy.deepcopy(x0)
         cost_det = 0
         det_opt = dfs_optimizer(light, car)
@@ -302,11 +315,11 @@ for init_vel in vel_collection:
             time_prof_det.append(t)
         
 
-        # dummy control
-        dum_con = smart_control(light, car, a_max, a_min)
+        # C. dummy control
+        dum_con = smart_control(light, car, a_max, a_min, opt_vel=v_star)
         traj_dum = []
         time_prof_dum = []
-        cost_dum = 0
+        cost_dum = 0.0
         x_dum = copy.deepcopy(x0)
         idling_dum = False
         for t in time_real:
@@ -328,92 +341,62 @@ for init_vel in vel_collection:
             time_prof_dum.append(t)
 
             ##############################
+        # plot the trajectory
+
+        # D. state_time control
+        obj = state_space(light, car)
+        st_plan = obj.solver(0.0, init_vel)
+        print("planned fuel cost:", st_plan["cost"])
+        time_prof_opt = []
+        traj_opt = []
+        cost_opt = []
+        cost_opt = 0.0
+        x_opt = copy.deepcopy(x0)
+        for t in time_real:
+            if x_opt[0] >= destination_loc:
+                break
+            
+            x_opt, forfuel = obj.dynamics(x_opt, t)
+            cost_opt += cost_ins(forfuel[0], forfuel[1], dt)
+            # update the light signal
+            x_opt[2] = light.give_clock(t)
+            traj_opt.append(x_opt[0])
+            
+
+            time_prof_opt.append(t)
+        print("accumulated fuel cost:", cost_opt)
+
+        time_prof_sto += t0_
+        time_prof_det += t0_
+        time_prof_dum += t0_
+        time_prof_opt += t0_
+        plt.plot(time_prof_sto, traj_sto, 'gold', label='partial',linewidth=0.5)
+        plt.plot(time_prof_det, traj_det, 'darkorchid', label='full',linewidth=0.5)
+        plt.plot(time_prof_dum, traj_dum, 'limegreen', label='human',linewidth=0.5)
+        plt.plot(time_prof_opt, traj_opt, colorlist[lll], label='state time',linewidth=1.5)
         
+        # plt.plot(time_real, vel, 'b')
+        if np.isclose(t0_, 0):
+            red, green, yellow = light.trafficline(final_time)
+            red_num, green_num, yel_num = len(red), len(green), len(yellow)
+            for j in range(int(red_num/2)):
+                newline(red[2*j], red[2*j + 1], 'r')
+            for j in range(int(green_num/2)):
+                newline(green[2*j], green[2*j + 1], 'g')
+            for j in range(int(yel_num/2)):
+                newline(yellow[2*j], yellow[2*j + 1], 'y')
+
+    plt.xlabel('time/sec')
+    plt.ylabel('position/m')
+    plt.xlim([0, 1.5 * light.T])
+    plt.ylim([0, light_location * 1.5])
+    plt.legend(["partial", "full", "human", "state time"])
+    plt.tight_layout()
+    # plt.title('Behavior set, v0 = '+str(init_vel))
+    plt.grid(color='b', linestyle='-', linewidth=.2)
+    foldername = 'v0='+ str(x0[1])
+    pic_name = 'vel_profile_v0='+ str(init_vel)+'_v_star=' +str(v_star)+ '_revision.png'
+    plt.savefig(os.path.join(os.getcwd(), 'pics', trafficFolderName, foldername, pic_name))
+    plt.close()
 
 
-        # plt.rcParams.update({'font.size': 15})
-        # plt.figure(figsize=(10, 8))
-
-        # # plot the trajectory
-        # # plt.plot(time_real, S[:, 0])
-
-
-        # plt.plot(time_prof_sto, traj_sto, 'b')
-        # plt.plot(time_prof_det, traj_det, 'k')
-        # plt.plot(time_prof_dum, traj_dum, 'g')
-        # plt.legend(['sto', 'det', "smart"])
-        # # plt.plot(time_real, vel, 'b')
-
-        # red, green, yellow = light.trafficline(final_time)
-        # red_num, green_num, yel_num = len(red), len(green), len(yellow)
-        # for j in range(int(red_num/2)):
-        #     newline(red[2*j], red[2*j + 1], 'r')
-        # for j in range(int(green_num/2)):
-        #     newline(green[2*j], green[2*j + 1], 'g')
-        # for j in range(int(yel_num/2)):
-        #     newline(yellow[2*j], yellow[2*j + 1], 'y')
-
-        # plt.xlabel('time/sec')
-        # plt.ylabel('position/m')
-        # plt.xlim([0, light.T])
-        # plt.ylim([0, light_location * 1.5])
-        # #plt.legend(['optimal trajectory', 'red', 'green', 'yellow'])
-
-        # plt.title('Monte Carlo trail, t0 = '+str(t0_))
-        # plt.grid(color='b', linestyle='-', linewidth=.2)
-        # prefix = str(x0[1])
-        # pic_name = 't0=' + str(t0_) + '_trail.png'
-        # foldername = 'v0='+ str(x0[1])
-        # plt.savefig(os.path.join(os.getcwd(), 'pics','Monte_Carlo', trafficFolderName, foldername, pic_name))
-        # plt.close()
-        print(t0_, 'saved!')
-        comp = {
-                "v0": x0[1],
-                "t0": t0_,
-                "det": cost_det,
-                "sto": cost_sto,
-                "dum": cost_dum
-            }
-        result = result.append(comp, ignore_index=True)
-
-
-    
-    filename = str(0) + '-' + str(x0[1]) + '-' + str(light.red_dur)+'-'+str(light.yel_dur)+'-'+str(light.gre_dur)+'_monte_carlo.csv'
-    result.to_csv(os.path.join(os.getcwd(), 'data', filename), sep='\t')
-    print('v0 = ', x0[1], ' csv result saved!')
-    # cost_sto_plot = []
-    # cost_det_plot = []
-    # cost_dum_plot = []
-    # for t0_ in t0_set:
-    #     cost_sto_plot.append(result[result["t0"] == t0_]["sto"].values[0] * dt)
-    #     cost_det_plot.append(result[result["t0"] == t0_]["det"].values[0] * dt)
-    #     cost_dum_plot.append(result[result["t0"] == t0_]["dum"].values[0] * dt)
-    # # print(cost_sto_plot)
-    # plt.figure(figsize=(10, 8))
-
-    # # plot the cost in one init vel
-    # # plt.plot(time_real, S[:, 0])
-
-
-    # plt.plot(t0_set, cost_sto_plot, 'b.')
-    # plt.plot(t0_set, cost_det_plot, 'k*')
-    # plt.plot(t0_set, cost_dum_plot, 'g^')
-    # plt.legend(['sto', 'det', "smart"])
-    # # plt.plot(time_real, vel, 'b')
-
-    # plt.xlabel('t0/sec')
-    # plt.ylabel('fuel cost/cm^3')
-    
-    # #plt.legend(['optimal trajectory', 'red', 'green', 'yellow'])
-
-    # plt.title('Comparison of fuel cost, v0 = '+str(init_vel))
-    # plt.grid(color='b', linestyle='-', linewidth=.2)
-    # foldername = 'v0='+ str(x0[1])
-    # pic_name = 'fuel_comp_v0='+ str(init_vel)+ '.png'
-    # plt.savefig(os.path.join(os.getcwd(), 'pics', trafficFolderName, foldername, pic_name))
-
-
-end_time = time.time()
-total_time = (end_time - init_time)
-ave_time = (end_time - init_time) / (len(vel_collection) * trail_num)
-print("total time comsumed: %s, total trails num: %d, average time %s" %(total_time, len(vel_collection) * trail_num, ave_time))
