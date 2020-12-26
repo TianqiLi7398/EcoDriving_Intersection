@@ -14,5 +14,5 @@
 #
 module load Python/3.5.2-intel-2017A
 
-# python creat_csv.py
 python Monte_Carlo_4ALG.py
+## python Monte_Carlo_4ALG.py
