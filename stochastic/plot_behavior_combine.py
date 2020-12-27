@@ -79,7 +79,7 @@ m = 5   # m = light.loc - x_init / dx
 n = 23   # n = v_max - 1
 light_location = 50.0
 timeset = [26, 5, 25]                      # a, red, yellow, green
-# timeset = [15, 3, 20]                      # b, red, yellow, green
+timeset = [15, 3, 20]                      # b, red, yellow, green
 # timeset = [25, 5, 30]                      # c, red, yellow, green
 trafficFolderName = str(timeset[0]) + '_' + str(timeset[1]) + '_' + str(timeset[2])
 dv = 1
@@ -91,12 +91,12 @@ a_min, a_max = -5, 8
 t0_set = np.linspace(0, sum(timeset), sum(timeset)//2 + 1)
 destination_loc = (m + 1) * delta_x + x_init
 vel_collection = [5, 10, 15, 20]
-vel_collection = [20]
+# vel_collection = [20]
 dt = 0.01
 v_star = 7
 # vel_collection = [5]
 # t0_set = [24]
-colorlist = ['y', 'g', 'b', 'r']
+colorlist = ['y', 'g', 'b', 'olive']
 
 for init_vel in vel_collection:
 
@@ -105,9 +105,9 @@ for init_vel in vel_collection:
     plt.figure(figsize=(10, 8))
 
 
-    # for t0_ in t0_set:
-    for lll in range(4):
-        t0_ = t0_set[[15, 16, 17, 18][lll]]
+    for t0_ in t0_set:
+    # for lll in range(4):
+        # t0_ = t0_set[[15, 16, 17, 18][lll]]
         print("t0 = ", t0_)
         light = traffic_light(t0_, timeset, light_location)
         init_light = light.give_clock(0)
@@ -370,10 +370,10 @@ for init_vel in vel_collection:
         time_prof_det += t0_
         time_prof_dum += t0_
         time_prof_opt += t0_
-        plt.plot(time_prof_sto, traj_sto, 'gold', label='partial',linewidth=0.5)
-        plt.plot(time_prof_det, traj_det, 'darkorchid', label='full',linewidth=0.5)
-        plt.plot(time_prof_dum, traj_dum, 'limegreen', label='human',linewidth=0.5)
-        plt.plot(time_prof_opt, traj_opt, colorlist[lll], label='state time',linewidth=1.5)
+        plt.plot(time_prof_sto, traj_sto, 'gold', label='partial',linewidth=1.0)
+        plt.plot(time_prof_det, traj_det, 'darkorchid', label='full',linewidth=1.0)
+        plt.plot(time_prof_dum, traj_dum, 'limegreen', label='human',linewidth=1.0)
+        plt.plot(time_prof_opt, traj_opt, 'orange', label='state time',linewidth=1.0)
         
         # plt.plot(time_real, vel, 'b')
         if np.isclose(t0_, 0):

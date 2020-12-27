@@ -71,8 +71,8 @@ m = 5   # m = light.loc - x_init / dx
 n = 23   # n = v_max - 1
 t0 = 36                                    # initial clock, irrelavent to mdp generation
 light_location = 50
-timeset = [26, 5, 25]                      # a, red, yellow, green
-# timeset = [15, 3, 20]                      # b, red, yellow, green
+timeset = [26, 5, 25]                      # a, red, yellow, green, run on HPRC
+# timeset = [15, 3, 20]                      # b, red, yellow, green, run on local
 # timeset = [25, 5, 30]                      # c, red, yellow, green
 trafficFolderName = str(timeset[0]) + '_' + str(timeset[1]) + '_' + str(timeset[2])
 dv = 1
@@ -352,7 +352,7 @@ for init_vel in vel_collection:
             
 
         
-        print('Trial # %s'%trail)
+        # print('Trial # %s'%trail)
         result["det"].append(cost_det)
         result["sto"].append(cost_sto)
         result["dum"].append(cost_dum)

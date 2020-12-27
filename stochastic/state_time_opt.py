@@ -60,7 +60,8 @@ class state_space:
         delta_v = v_map - v
         aa = delta_v / self.dt
         
-        new_dv = np.delete(delta_v, np.bitwise_or(aa < self.car.a_min, aa > self.car.a_max))
+        # new_dv = np.delete(delta_v, np.bitwise_or(aa < self.car.a_min, aa > self.car.a_max))
+        new_dv = delta_v[(aa >= self.car.a_min) & (aa <= self.car.a_max)]
         
         x_list, cost_list = [], []
         for dv in new_dv:
