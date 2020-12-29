@@ -4,5 +4,9 @@
     "python.linting.pycodestyleEnabled": true,
     "launch": {
     
-    }
+    },
+    "python.autoComplete.extraPaths": [
+        "/home/agc2/catkin_ws/devel/lib/python3/dist-packages",
+        "/opt/ros/melodic/lib/python2.7/dist-packages"
+    ]
 }
