@@ -29,7 +29,7 @@ for init_vel in vel_collection:
     plt.legend(["det", "sto", "smart"])
     plt.xlabel("trail times")
     plt.ylabel("Average fuel comsumption/ 1e-3 Liter")
-    plt.title("Monte Carlo compare of v = %s in %d times" % (init_vel, len(cost_table)))
+    # plt.title("Monte Carlo compare of v = %s in %d times" % (init_vel, len(cost_table)))
     foldername = 'v0='+ str(x0[1])
     pic_name = 'v0='+ str(init_vel)+ '_Monte_Carlo.png'
     plt.savefig(os.path.join(os.getcwd(), 'pics', 'Monte_Carlo', trafficFolderName, foldername, pic_name))

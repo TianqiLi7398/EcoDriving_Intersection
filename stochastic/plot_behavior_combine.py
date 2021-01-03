@@ -12,9 +12,9 @@ import pandas as pd
 import copy
 import os
 
-def newline(p1, p2, color):
+def newline(p1, p2, color, ax):
     # draw a line from p1=[x,y] to p2
-    ax = plt.gca()
+    # ax = plt.gca()
     ymin, ymax = p1[1], p2[1]
     xmin, xmax = p1[0], p2[0]
 
@@ -91,23 +91,26 @@ a_min, a_max = -5, 8
 t0_set = np.linspace(0, sum(timeset), sum(timeset)//2 + 1)
 destination_loc = (m + 1) * delta_x + x_init
 vel_collection = [5, 10, 15, 20]
-# vel_collection = [20]
+vel_collection = [15]
 dt = 0.01
 v_star = 7
 # vel_collection = [5]
 # t0_set = [24]
 colorlist = ['y', 'g', 'b', 'olive']
 
+det_time_list, opt_time_list = [], []
+
 for init_vel in vel_collection:
 
     result = pd.DataFrame(columns=["v0", "t0", "det", "sto", "dum"])
     plt.rcParams.update({'font.size': 15})
-    plt.figure(figsize=(10, 8))
+    # plt.figure(figsize=(10, 8))
 
-
+    fig, axs = plt.subplots(1, 2, figsize=(16, 5))
+    
     for t0_ in t0_set:
-    # for lll in range(4):
-        # t0_ = t0_set[[15, 16, 17, 18][lll]]
+    # for lll in range(1):
+    #     t0_ = t0_set[[0, 2][lll]]
         print("t0 = ", t0_)
         light = traffic_light(t0_, timeset, light_location)
         init_light = light.give_clock(0)
@@ -266,7 +269,9 @@ for init_vel in vel_collection:
         x_det = copy.deepcopy(x0)
         cost_det = 0
         det_opt = dfs_optimizer(light, car)
+        det_start = time.time()
         plan_det, cost, vel = det_opt.solver(x_det[0], x_det[1], dv)
+        det_delta_t = time.time() - det_start
         # print(plan_det, vel)
         if np.isclose(vel[-2], 0):
             vel[-3] -= 0.2
@@ -345,8 +350,10 @@ for init_vel in vel_collection:
 
         # D. state_time control
         obj = state_space(light, car)
+        opt_start = time.time()
         st_plan = obj.solver(0.0, init_vel)
-        print("planned fuel cost:", st_plan["cost"])
+        opt_delta_t = time.time() - opt_start
+        # print("planned fuel cost:", st_plan["cost"])
         time_prof_opt = []
         traj_opt = []
         cost_opt = []
@@ -364,39 +371,74 @@ for init_vel in vel_collection:
             
 
             time_prof_opt.append(t)
-        print("accumulated fuel cost:", cost_opt)
+        # print("accumulated fuel cost:", cost_opt)
 
+        det_time_list.append(det_delta_t)
+        opt_time_list.append(opt_delta_t)
         time_prof_sto += t0_
         time_prof_det += t0_
         time_prof_dum += t0_
         time_prof_opt += t0_
-        plt.plot(time_prof_sto, traj_sto, 'gold', label='partial',linewidth=1.0)
-        plt.plot(time_prof_det, traj_det, 'darkorchid', label='full',linewidth=1.0)
-        plt.plot(time_prof_dum, traj_dum, 'limegreen', label='human',linewidth=1.0)
-        plt.plot(time_prof_opt, traj_opt, 'orange', label='state time',linewidth=1.0)
+
+        axs[1].plot(time_prof_sto, traj_sto, 'navy')
+        # axs[0, 1].set_title('Partial trajectory')
+        axs[ 0].plot(time_prof_det, traj_det, 'grey')
+        # axs[0, 0].set_title('Full trajectory')
+        axs[1].plot(time_prof_dum, traj_dum, 'olive')
+        # axs[0, 1].set_title('Human model trajectory')
+        axs[0].plot(time_prof_opt, traj_opt, 'orange')
+        # axs[0, 0].set_title('Time-state trajectory')
+
+        for ax in axs.flat:
+            ax.set(xlabel='time/sec', ylabel='position/m')
+            ax.set_xlim(0, light.location * 1.2)
+            ax.set_xticks(np.arange(0, light.location * 1.3, 4))
+            ax.set_yticks(np.arange(0, 70, 10))
+            ax.grid(color='b', linestyle='-', linewidth=.05)
+            ax.tick_params(axis='x', labelsize= 12)
+            ax.tick_params(axis='y', labelsize= 12)
+        # Hide x labels and tick labels for top plots and y ticks for right plots.
+        for ax in axs.flat:
+            ax.label_outer()
+
+        # plt.plot(time_prof_sto, traj_sto, 'navy', label='partial',linewidth=1.0)
+        # plt.plot(time_prof_det, traj_det, 'grey', label='full',linewidth=1.0)
+        # plt.plot(time_prof_dum, traj_dum, 'olive', label='human',linewidth=1.0)
+        # plt.plot(time_prof_opt, traj_opt, 'orange', label='time-state',linewidth=1.0)
         
         # plt.plot(time_real, vel, 'b')
         if np.isclose(t0_, 0):
             red, green, yellow = light.trafficline(final_time)
             red_num, green_num, yel_num = len(red), len(green), len(yellow)
-            for j in range(int(red_num/2)):
-                newline(red[2*j], red[2*j + 1], 'r')
-            for j in range(int(green_num/2)):
-                newline(green[2*j], green[2*j + 1], 'g')
-            for j in range(int(yel_num/2)):
-                newline(yellow[2*j], yellow[2*j + 1], 'y')
 
-    plt.xlabel('time/sec')
-    plt.ylabel('position/m')
-    plt.xlim([0, 1.5 * light.T])
-    plt.ylim([0, light_location * 1.5])
-    plt.legend(["partial", "full", "human", "state time"])
+            for ax in axs.flat:
+            
+                for j in range(int(red_num/2)):
+                    newline(red[2*j], red[2*j + 1], 'r', ax)
+                for j in range(int(green_num/2)):
+                    newline(green[2*j], green[2*j + 1], 'g', ax)
+                for j in range(int(yel_num/2)):
+                    newline(yellow[2*j], yellow[2*j + 1], 'y', ax)
+
+    print(det_delta_t)
+    print(opt_delta_t)
+    # plt.xlabel('time/sec')
+    # plt.ylabel('position/m')
+    # plt.xlim([0, 1.5 * light.T])
+    # plt.ylim([0, light_location * 1.5])
+    # plt.legend(["partial", "full", "human", "time-state"])
+    # plt.tight_layout()
+    
+    # plt.grid(color='b', linestyle='-', linewidth=.2)
+    axs[0].legend(["full", "time-state"], bbox_to_anchor=(0.8,0.88), fontsize=8)
+    axs[1].legend(["partial", "human model"], bbox_to_anchor=(0.8,0.88), fontsize=8)
+
     plt.tight_layout()
-    # plt.title('Behavior set, v0 = '+str(init_vel))
-    plt.grid(color='b', linestyle='-', linewidth=.2)
     foldername = 'v0='+ str(x0[1])
+
     pic_name = 'vel_profile_v0='+ str(init_vel)+'_v_star=' +str(v_star)+ '_revision.png'
     plt.savefig(os.path.join(os.getcwd(), 'pics', trafficFolderName, foldername, pic_name))
+
     plt.close()
 
 
