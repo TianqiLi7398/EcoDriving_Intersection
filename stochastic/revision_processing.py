@@ -7,7 +7,11 @@ timeset = [26, 5, 25]                      # a, red, yellow, green
 timeset = [15, 3, 20]                      # b, red, yellow, green
 trafficFolderName = str(timeset[0]) + '_' + str(timeset[1]) + '_' + str(timeset[2])
 vel_collection = [5, 10, 15, 20]
+vel_collection = [15]
 density = 0.7489
+plt.rc('xtick',labelsize=18)
+plt.rc('ytick',labelsize=18)
+
 
 for init_vel in vel_collection:
     x0 = [0, init_vel]
@@ -52,9 +56,9 @@ for init_vel in vel_collection:
     plt.plot(ave_dum)
     plt.plot(ave_opt)
     
-    plt.legend(["full", "partial", "human", "time-state"])
-    plt.xlabel("trail times")
-    plt.ylabel("Average fuel comsumption/g")
+    plt.legend(["SSOP", "SSSP", "human", "TSOP"], prop={"size":16})
+    plt.xlabel("trail times", fontsize=18)
+    plt.ylabel("Average fuel comsumption/g", fontsize=18)
     # plt.title("Monte Carlo compare of v0 = %s in %d trials" % (init_vel, len(cost_table["sto"])))
     foldername = 'v0='+ str(x0[1])
     pic_name = 'revision_v0='+ str(init_vel)+ '_Monte_Carlo.png'

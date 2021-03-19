@@ -100,14 +100,15 @@ colorlist = ['y', 'g', 'b', 'olive']
 
 det_time_list, opt_time_list = [], []
 
+plt.rc('xtick',labelsize=18)
+plt.rc('ytick',labelsize=18)
+
 for init_vel in vel_collection:
 
     result = pd.DataFrame(columns=["v0", "t0", "det", "sto", "dum"])
-    plt.rcParams.update({'font.size': 15})
+    fig, axs = plt.subplots(2, 1, figsize=(8, 10))
     # plt.figure(figsize=(10, 8))
-
-    fig, axs = plt.subplots(1, 2, figsize=(16, 5))
-    
+    # for t0_ in [0]:
     for t0_ in t0_set:
     # for lll in range(1):
     #     t0_ = t0_set[[0, 2][lll]]
@@ -263,8 +264,6 @@ for init_vel in vel_collection:
             # cost_sto += cost_time_step(dt, u, w1, w2, w3, x_sto, light)
             time_prof_sto.append(t)
         
-
-
         # B. determined case
         x_det = copy.deepcopy(x0)
         cost_det = 0
@@ -382,7 +381,7 @@ for init_vel in vel_collection:
 
         axs[1].plot(time_prof_sto, traj_sto, 'navy')
         # axs[0, 1].set_title('Partial trajectory')
-        axs[ 0].plot(time_prof_det, traj_det, 'grey')
+        axs[0].plot(time_prof_det, traj_det, 'grey')
         # axs[0, 0].set_title('Full trajectory')
         axs[1].plot(time_prof_dum, traj_dum, 'olive')
         # axs[0, 1].set_title('Human model trajectory')
@@ -391,7 +390,8 @@ for init_vel in vel_collection:
 
         for ax in axs.flat:
             ax.set(xlabel='time/sec', ylabel='position/m')
-            ax.set_xlim(0, light.location * 1.2)
+            # ax.set_xlim(0, light.location * 1.2)
+            ax.set_xlim([0, 48])
             ax.set_xticks(np.arange(0, light.location * 1.3, 4))
             ax.set_yticks(np.arange(0, 70, 10))
             ax.grid(color='b', linestyle='-', linewidth=.05)
@@ -419,24 +419,18 @@ for init_vel in vel_collection:
                     newline(green[2*j], green[2*j + 1], 'g', ax)
                 for j in range(int(yel_num/2)):
                     newline(yellow[2*j], yellow[2*j + 1], 'y', ax)
-
-    print(det_delta_t)
-    print(opt_delta_t)
-    # plt.xlabel('time/sec')
-    # plt.ylabel('position/m')
-    # plt.xlim([0, 1.5 * light.T])
-    # plt.ylim([0, light_location * 1.5])
-    # plt.legend(["partial", "full", "human", "time-state"])
-    # plt.tight_layout()
     
     # plt.grid(color='b', linestyle='-', linewidth=.2)
-    axs[0].legend(["full", "time-state"], bbox_to_anchor=(0.8,0.88), fontsize=8)
-    axs[1].legend(["partial", "human model"], bbox_to_anchor=(0.8,0.88), fontsize=8)
 
+    # axs[0].legend(["full", "time-state"], bbox_to_anchor=(0.8,0.88), fontsize=18)
+    # axs[1].legend(["partial", "human model"], bbox_to_anchor=(0.8,0.88), fontsize=18)
+    plt.rcParams.update({'font.size': 15})
+    for ax in axs.flat:
+        ax.set_xlim([0, 48])
     plt.tight_layout()
     foldername = 'v0='+ str(x0[1])
 
-    pic_name = 'vel_profile_v0='+ str(init_vel)+'_v_star=' +str(v_star)+ '_revision.png'
+    pic_name = 'icra_vel_profile_v0='+ str(init_vel)+'_v_star=' +str(v_star)+ '_revision.png'
     plt.savefig(os.path.join(os.getcwd(), 'pics', trafficFolderName, foldername, pic_name))
 
     plt.close()
